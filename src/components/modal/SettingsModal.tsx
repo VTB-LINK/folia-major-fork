@@ -162,6 +162,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         nomandBackgroundTuning,
         latentBackgroundTuning,
         monetTuning,
+        pendoloTuning,
         cappellaCustomEmojiImages,
         isLoadingCappellaCustomEmojiPack,
         cappellaCustomAvatarImages,
@@ -234,6 +235,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         handleResetLatentBackgroundTuning: onResetLatentBackgroundTuning,
         handleSetMonetTuning: onMonetTuningChange,
         handleResetMonetTuning: onResetMonetTuning,
+        handleSetPendoloTuning: onPendoloTuningChange,
+        handleResetPendoloTuning: onResetPendoloTuning,
         handleUploadMonetBackgroundImage: onUploadMonetBackgroundImage,
         handleClearMonetBackgroundImage: onClearMonetBackgroundImage,
         handleUploadMonetPortraitImage: onUploadMonetPortraitImage,
@@ -1754,6 +1757,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         tiltTuning={tiltTuning}
                         dioramaTuning={dioramaTuning}
                         monetTuning={monetTuning}
+                        pendoloTuning={pendoloTuning}
                         cappellaCustomEmojiImages={cappellaCustomEmojiImages}
                         cappellaCustomAvatarImages={cappellaCustomAvatarImages}
                         monetPortraitImage={monetPortraitImage}
@@ -1806,6 +1810,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         onResetDioramaTuning={onResetDioramaTuning}
                         onMonetTuningChange={onMonetTuningChange}
                         onResetMonetTuning={onResetMonetTuning}
+                        onPendoloTuningChange={onPendoloTuningChange}
+                        onResetPendoloTuning={onResetPendoloTuning}
                         onUploadMonetPortraitImage={onUploadMonetPortraitImage}
                         onClearMonetPortraitImage={onClearMonetPortraitImage}
                         isLoadingMonetPortraitImage={isLoadingMonetPortraitImage}
@@ -1835,6 +1841,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             tilt: tiltTuning,
                             diorama: dioramaTuning,
                             monet: monetTuning,
+                            pendolo: pendoloTuning,
                         }}
                         staticMode={staticMode}
                         visualizerOpacity={visualizerOpacity}
