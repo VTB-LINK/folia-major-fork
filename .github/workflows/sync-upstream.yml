@@ -1,14 +1,22 @@
-name: Sync main from upstream
+name: Sync from upstream
 
-# 把 fork 的 main 快进同步到上游 chthollyphile/folia-major:main，并镜像上游 tag。
+# Job 1 (sync-main): fast-forward the fork's main to upstream chthollyphile/folia-major:main
+#   and mirror upstream release tags. main is a clean upstream mirror -- ff only, no --force,
+#   so an accidental divergence fails loudly instead of being overwritten.
+# Job 2 (sync-fork-release, runs after job 1): merge the freshly-synced main into the deployed
+#   fork-release branch on a stable scratch branch (sync/upstream-main). A clean, verified merge
+#   is opened -- or the already-open PR is updated in place with the newer code -- as a single
+#   ready-to-review PR; conflicts (which need the obs / AI-relay resolution playbook and cannot be
+#   auto-resolved) are filed as an issue instead. Nothing is pushed to fork-release automatically:
+#   a human merges the PR, which is what triggers the Azure deploy. Chaining job 2 after job 1
+#   guarantees the fork-release PR is always based on the just-synced main, never stale code.
+#
 # 定时（每 4 小时）+ 手动（workflow_dispatch）。
-# main 仅 fast-forward：push 不加 --force，若 main 意外分叉则失败报警而非覆盖，
-# 保证 main 始终是上游的干净镜像（分叉只应发生在 fork-release / feat 分支）。
-# tag 只镜像正式版本（vN.N.N，无后缀）：canary / rc / nightly / cielo 等测试标签一律跳过。
-# 正式版 tag 不可变，force 推送对其是幂等 no-op（用 force 仅为对已存在的 tag 稳妥幂等）。
-# 认证：checkout 用带 workflow scope 的 PAT（仓库 secret SYNC_PAT），不能用默认 GITHUB_TOKEN——
-# GitHub 禁止 GITHUB_TOKEN 推送 .github/workflows/ 的增改，上游一旦改动 workflow 文件（如
-# canary-pre-release.yml）ff 推送就会被拒。SYNC_PAT 需 contents + workflows 读写权限。
+# 认证：checkout 用带 workflow scope 的 PAT（仓库 secret SYNC_PAT）——GitHub 禁止默认 GITHUB_TOKEN
+#   推送 .github/workflows/ 的增改，上游一旦改动 workflow 文件 ff 推送就会被拒。SYNC_PAT 需
+#   contents + workflows + pull-requests + issues 读写权限。
+# tag 只镜像正式版本（vN.N.N），canary / rc / nightly / cielo 等测试标签一律跳过。
+
 on:
   schedule:
     - cron: '17 */4 * * *'
@@ -16,13 +24,15 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
+  issues: write
 
 concurrency:
   group: sync-upstream
   cancel-in-progress: false
 
 jobs:
-  sync:
+  sync-main:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -48,3 +58,126 @@ jobs:
           for tag in $tags; do
             git push origin --force "refs/tags/$tag:refs/tags/$tag"
           done
+
+  sync-fork-release:
+    needs: sync-main
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.SYNC_PAT }}
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      SYNC_BRANCH: sync/upstream-main
+    steps:
+      - name: Checkout fork-release
+        uses: actions/checkout@v4
+        with:
+          ref: fork-release
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_PAT }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "fork-sync-bot"
+          git config user.email "fork-sync-bot@users.noreply.github.com"
+
+      - name: Fetch the freshly-synced main (and any existing sync branch)
+        run: |
+          set -euo pipefail
+          git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+          git fetch origin
+
+      - name: Decide whether a sync is needed
+        id: plan
+        run: |
+          set -euo pipefail
+          behind="$(git rev-list --count fork-release..origin/main)"
+          sha="$(git rev-parse --short origin/main)"
+          need=false
+          if [ "$behind" != "0" ]; then
+            need=true
+            # Skip if the existing sync branch already contains this main AND is based on the
+            # current fork-release -- the open PR is already up to date, so there is nothing new
+            # to stack and no point re-running npm ci / the build.
+            if git rev-parse --verify "origin/${SYNC_BRANCH}" >/dev/null 2>&1; then
+              if git merge-base --is-ancestor origin/main "origin/${SYNC_BRANCH}" \
+                 && git merge-base --is-ancestor fork-release "origin/${SYNC_BRANCH}"; then
+                need=false
+              fi
+            fi
+          fi
+          echo "need=$need" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "fork-release is $behind behind origin/main ($sha); sync needed: $need"
+
+      - name: Merge the synced main on the sync branch
+        id: merge
+        if: steps.plan.outputs.need == 'true'
+        run: |
+          set -uo pipefail
+          git checkout -B "${SYNC_BRANCH}" fork-release
+          if git merge --no-ff --no-edit origin/main; then
+            echo "result=clean" >> "$GITHUB_OUTPUT"
+          else
+            git diff --name-only --diff-filter=U > /tmp/conflicts.txt
+            git merge --abort
+            echo "result=conflict" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify the clean merge (typecheck, tests, build)
+        id: verify
+        if: steps.merge.outputs.result == 'clean'
+        continue-on-error: true
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npx vitest run -c vitest.config.ts
+          npx vite build
+
+      - name: Push the sync branch and open / update the PR
+        if: steps.merge.outputs.result == 'clean'
+        run: |
+          set -euo pipefail
+          git push --force origin "${SYNC_BRANCH}"
+          if [ "${{ steps.verify.outcome }}" = "success" ]; then
+            body="Automated clean merge of upstream main (\`${{ steps.plan.outputs.sha }}\`) into \`fork-release\`. Typecheck, unit tests and \`vite build\` all passed in the sync run. Review and merge to deploy."
+          else
+            body="Automated clean merge of upstream main (\`${{ steps.plan.outputs.sha }}\`) into \`fork-release\`, but **verification FAILED** in the sync run (typecheck / tests / build) -- read the workflow logs before merging. A textually-clean merge can still be broken semantically by upstream changes."
+          fi
+          num="$(gh pr list --state open --base fork-release --head "${SYNC_BRANCH}" --json number --jq '.[0].number // empty')"
+          if [ -z "$num" ]; then
+            gh pr create --base fork-release --head "${SYNC_BRANCH}" \
+              --title "Sync fork-release <- upstream main" --body "$body"
+          else
+            gh pr edit "$num" --body "$body"
+            gh pr comment "$num" --body "Restacked onto newer upstream main (\`${{ steps.plan.outputs.sha }}\`)."
+          fi
+
+      - name: File / update a conflict issue
+        if: steps.merge.outputs.result == 'conflict'
+        run: |
+          set -euo pipefail
+          {
+            echo "Merging upstream main (\`${{ steps.plan.outputs.sha }}\`) into \`fork-release\` hit conflicts that need the semantic resolution playbook, so they were not auto-resolved."
+            echo
+            echo "**Conflicted files:**"
+            echo '```'
+            cat /tmp/conflicts.txt
+            echo '```'
+            echo
+            echo "**Resolution playbook:**"
+            echo "- obs regular files (appearanceCodec / appearanceImportPlan / ImportConfirmDialog / webObsTarget + obs tests): take **upstream's** version -- the refined superset of the fork's obs code."
+            echo "- obs AI layer (gemini \`ObsAiConfig\` + requestBody, obsWebAppearance \`parseObsAiParams\`, currentObsUrl ai block, useObsAiTheme): keep the **fork's** key-in-URL relay."
+            echo "- ObsCopyUrlButton: keep the fork's \`containerClassName\` + upstream's width-reserve fix."
+            echo "- store / i18n: take the **union** (fork keys + upstream keys)."
+            echo "- fork infra (forkSource / webAiConfig / swa-api / Azure + sync workflows / Clarity / ControlsTab button / online-provider switcher isElectron-gate): keep the **fork's**."
+            echo
+            echo "Resolve locally on a branch off \`fork-release\` (back up \`backup/fork-release-<sha>\` first), then merge to deploy. Close this issue once fork-release contains the upstream commit."
+          } > /tmp/issue.md
+          title="Manual sync needed: fork-release <- upstream main"
+          num="$(gh issue list --state open --search "in:title \"$title\"" --json number,title --jq "[.[] | select(.title == \"$title\")] | .[0].number // empty")"
+          if [ -z "$num" ]; then
+            gh issue create --title "$title" --body-file /tmp/issue.md
+          else
+            gh issue edit "$num" --body-file /tmp/issue.md
+            gh issue comment "$num" --body "Still conflicting as of upstream \`${{ steps.plan.outputs.sha }}\`."
+          fi
