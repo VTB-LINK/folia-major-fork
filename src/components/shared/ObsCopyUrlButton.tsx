@@ -85,8 +85,15 @@ export const ObsCopyUrlButton: React.FC<ObsCopyUrlButtonProps> = ({
                 className={`${baseBtn} rounded-l-lg justify-center ${buttonClassName ?? 'px-3 py-2'}`}
                 style={{ color: copied ? '#86efac' : 'var(--text-primary)' }}
             >
-                {copied ? <Check size={13} /> : <Copy size={13} />}
-                <span>{copied ? t('status.copied') : `${t('options.copyObsUrl')} | ${current.label}`}</span>
+                {copied ? <Check size={13} className="shrink-0" /> : <Copy size={13} className="shrink-0" />}
+                {/* Reserve the copy label's width so switching to "copied" never resizes the button.
+                    In the flex-wrap button row that resize would flip whether this button wraps to the
+                    next line, jumping the whole group. The label (with the mode) stays as an invisible
+                    width holder and "copied" is overlaid centered. */}
+                <span className="relative inline-flex items-center whitespace-nowrap">
+                    <span className={copied ? 'invisible' : undefined}>{`${t('options.copyObsUrl')} | ${current.label}`}</span>
+                    {copied && <span className="absolute inset-0 flex items-center justify-center">{t('status.copied')}</span>}
+                </span>
             </button>
             <button
                 type="button"

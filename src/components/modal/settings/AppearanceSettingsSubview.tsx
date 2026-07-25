@@ -113,19 +113,17 @@ const AppearanceSettingsSubview: React.FC<AppearanceSettingsSubviewProps> = ({
         if (customTheme) return 'custom';
         return 'none';
     });
-
-    // Set once the user picks from the three buttons; until then the selection is only a default and
-    // may keep tracking the available themes.
+    // A deliberate pick (clicking a theme button) freezes the auto-follow below; without it the
+    // effect keeps overwriting the user's choice on any theme change.
     const exportThemePickedRef = React.useRef(false);
     const pickExportThemeType = (value: 'custom' | 'ai' | 'none') => {
         exportThemePickedRef.current = true;
         setExportThemeType(value);
     };
 
-    // A deliberate pick is never overwritten -- only repaired when the option it names disappears.
-    // Anything else still follows the available themes, so a regenerated AI theme reselects itself
-    // instead of leaving the export stuck on 'none'. bgMode is not a dependency: the buttons are
-    // gated on the themes themselves.
+    // Until the user picks, track whichever theme is available (AI-preferred); after a pick, repair
+    // only -- demote to 'none' when the picked option's theme disappears, but never override a
+    // deliberate choice. bgMode is not a dependency -- the buttons are gated on the themes themselves.
     React.useEffect(() => {
         setExportThemeType(prev => {
             if (!exportThemePickedRef.current) return aiTheme ? 'ai' : customTheme ? 'custom' : 'none';
@@ -144,12 +142,16 @@ const AppearanceSettingsSubview: React.FC<AppearanceSettingsSubviewProps> = ({
         visualizerOpacity: state.visualizerOpacity,
         hidePlayerTranslationSubtitle: state.hidePlayerTranslationSubtitle,
         showSubtitleTranslation: state.showSubtitleTranslation,
+        subtitleContentMode: state.subtitleContentMode,
         subtitleOverlayBackground: state.subtitleOverlayBackground,
+        showHarmonySubtitle: state.showHarmonySubtitle,
+        harmonySubtitleBackground: state.harmonySubtitleBackground,
         lyricsFontStyle: state.lyricsFontStyle,
         lyricsFontScale: state.lyricsFontScale,
         lyricsFontWeight: state.lyricsFontWeight,
         lyricsFontFallbackFamilies: state.lyricsFontFallbackFamilies,
         subtitleFontInheritsLyrics: state.subtitleFontInheritsLyrics,
+        subtitleFontScale: state.subtitleFontScale,
         subtitleFontStyle: state.subtitleFontStyle,
         subtitleFontWeight: state.subtitleFontWeight,
         subtitleFontFamily: state.subtitleFontFamily,
@@ -176,12 +178,16 @@ const AppearanceSettingsSubview: React.FC<AppearanceSettingsSubviewProps> = ({
         handleSetVisualizerOpacity: state.handleSetVisualizerOpacity,
         handleToggleHidePlayerTranslationSubtitle: state.handleToggleHidePlayerTranslationSubtitle,
         handleToggleShowSubtitleTranslation: state.handleToggleShowSubtitleTranslation,
+        handleSetSubtitleContentMode: state.handleSetSubtitleContentMode,
         handleToggleSubtitleOverlayBackground: state.handleToggleSubtitleOverlayBackground,
+        handleToggleShowHarmonySubtitle: state.handleToggleShowHarmonySubtitle,
+        handleToggleHarmonySubtitleBackground: state.handleToggleHarmonySubtitleBackground,
         handleSetLyricsFontStyle: state.handleSetLyricsFontStyle,
         handleSetLyricsFontScale: state.handleSetLyricsFontScale,
         handleSetLyricsFontWeight: state.handleSetLyricsFontWeight,
         handleSetLyricsFontFallbackFamilies: state.handleSetLyricsFontFallbackFamilies,
         handleSetSubtitleFontInheritsLyrics: state.handleSetSubtitleFontInheritsLyrics,
+        handleSetSubtitleFontScale: state.handleSetSubtitleFontScale,
         handleSetSubtitleFontStyle: state.handleSetSubtitleFontStyle,
         handleSetSubtitleFontWeight: state.handleSetSubtitleFontWeight,
         handleSetSubtitleFontFamily: state.handleSetSubtitleFontFamily,
@@ -271,8 +277,8 @@ const AppearanceSettingsSubview: React.FC<AppearanceSettingsSubviewProps> = ({
         const target = resolveWebObsTarget();
         if (!target) return;
         // Same builder as the stage header's button, so both produce an identical link. The theme
-        // follows the OBS mode and the applied theme -- not the export toggle below, which governs
-        // the config code only.
+        // follows the OBS theme mode and the applied theme -- not the export toggle below, which
+        // governs the config code only. PlayerCap host/params come from the resolved target.
         const url = await buildCurrentObsUrl(target.source, target.host, target.extra);
         try {
             await navigator.clipboard.writeText(url);
@@ -363,8 +369,20 @@ const AppearanceSettingsSubview: React.FC<AppearanceSettingsSubviewProps> = ({
             if (has('showSubtitleTranslation')) {
                 store.handleToggleShowSubtitleTranslation(Boolean(config.showSubtitleTranslation));
             }
+            if (has('subtitleContentMode')
+                && (config.subtitleContentMode === 'translation'
+                    || config.subtitleContentMode === 'romanization'
+                    || config.subtitleContentMode === 'none')) {
+                store.handleSetSubtitleContentMode(config.subtitleContentMode);
+            }
             if (has('subtitleOverlayBackground')) {
                 store.handleToggleSubtitleOverlayBackground(Boolean(config.subtitleOverlayBackground));
+            }
+            if (has('showHarmonySubtitle')) {
+                store.handleToggleShowHarmonySubtitle(Boolean(config.showHarmonySubtitle));
+            }
+            if (has('harmonySubtitleBackground')) {
+                store.handleToggleHarmonySubtitleBackground(Boolean(config.harmonySubtitleBackground));
             }
 
             if (has('visualizerBackgroundMode') && config.visualizerBackgroundMode) {
@@ -395,6 +413,9 @@ const AppearanceSettingsSubview: React.FC<AppearanceSettingsSubviewProps> = ({
             if (has('subtitleFontInheritsLyrics')) {
                 store.handleSetSubtitleFontInheritsLyrics(Boolean(config.subtitleFontInheritsLyrics));
             }
+            if (has('subtitleFontScale')) {
+                store.handleSetSubtitleFontScale(config.subtitleFontScale);
+            }
             if (has('subtitleFontStyle') && config.subtitleFontStyle) {
                 store.handleSetSubtitleFontStyle(config.subtitleFontStyle);
             }
@@ -409,7 +430,7 @@ const AppearanceSettingsSubview: React.FC<AppearanceSettingsSubviewProps> = ({
             }
 
             // Tunings. The bundle wins over the individual ones, which is why the plan never offers
-            // both — picking the bundle is picking every renderer at once.
+            // both -- picking the bundle is picking every renderer at once.
             if (has('visualizerTunings') && config.visualizerTunings) {
                 applyVisualizerTuningsToSettings(store as unknown as Record<string, unknown>, config.visualizerTunings);
             }

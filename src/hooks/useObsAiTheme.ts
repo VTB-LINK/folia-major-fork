@@ -3,11 +3,11 @@ import type { DualTheme } from '../types';
 import type { WebLyricSourceState } from '../types/webLyricSource';
 import { generateObsThemeFromLyrics, type ObsAiConfig } from '../services/gemini';
 
-// Dynamic·AI web OBS overlay (obs-endpoint-enhance): regenerate an AI DualTheme once per song from
-// the lyrics the source provides. Returns null until (and unless) one is generated, so the overlay
-// shows the cover-derived builtin theme meanwhile and on any failure. Runs in the OBS browser
-// context, so it never touches the app's localStorage/cache: a replayed song regenerates, and the
-// AI key (if any) comes from the caller (parsed off the URL), not webAiConfig.
+// Dynamic·AI web OBS overlay: regenerate an AI DualTheme once per song from the lyrics the source
+// provides. Returns null until (and unless) one is generated, so the overlay shows the cover-derived
+// builtin theme meanwhile and on any failure. Runs in the OBS browser context, so it never touches
+// the app's localStorage/cache: a replayed song regenerates, and the AI key (if any) comes from the
+// caller (parsed off the URL), not webAiConfig.
 //
 // track and lyrics arrive on separate source messages (and sticky mode keeps a previous song's
 // lyrics), so on a song change the lyrics still in state belong to the OLD song. Generating from

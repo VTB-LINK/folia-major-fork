@@ -1,4 +1,4 @@
-import type { Theme, VisualizerMode } from '../types';
+import type { SubtitleContentMode, Theme, VisualizerMode } from '../types';
 import type { VisualizerTuningBundle } from '../components/visualizer/tuningRegistry';
 import type { VisualizerBackgroundConfig } from '../components/visualizer/backgrounds/definition';
 import { DEFAULT_VISUALIZER_MODE, hasVisualizerMode } from '../components/visualizer/registry';
@@ -12,8 +12,8 @@ import type { ObsAiConfig } from '../services/gemini';
 // cover-color theme. Note decompressConfig emits store field names, so this maps them to
 // VisualizerRenderer prop names (e.g. visualizerMode -> mode).
 
-// How the copied link asks the overlay to resolve its theme (obs-endpoint-enhance): burn in the cfg
-// theme, derive a builtin palette per song, or regenerate one per song with AI.
+// How the copied link asks the overlay to resolve its theme: burn in the cfg theme, derive a
+// builtin palette per song, or regenerate one per song with AI.
 export type ObsThemeMode = 'static' | 'builtin' | 'ai';
 
 // Whitelist read: an absent or hand-mangled value is null, i.e. "no mode stated", never an error.
@@ -39,9 +39,11 @@ export interface ObsWebAppearance {
   visualizerTunings?: VisualizerTuningBundle;
   visualizerOpacity?: number;
   lyricsFontScale?: number;
+  subtitleFontScale?: number;
   lyricsFontWeight?: number | null;
   hideTranslationSubtitle?: boolean;
   showSubtitleTranslation?: boolean;
+  subtitleContentMode?: SubtitleContentMode;
   subtitleOverlayBackground?: boolean;
   // Font stack (raw store fields; overlaid onto the theme in ObsWebSourceApp so fonts match the
   // main window). Only a system custom font's family transfers (uploaded fonts do not).
@@ -73,10 +75,9 @@ export function parseObsWebParams(search: string): ObsWebParams {
   };
 }
 
-// Dynamic·AI overlay params (obs-endpoint-enhance): returns the AI connection under obsTheme=ai,
-// else null. The key/url/model are read raw (no sanitize) since they are opaque secrets; on a
-// server-key deploy they are absent and the endpoint uses its own env key. Kept separate from the
-// appearance cfg.
+// Dynamic·AI overlay params (fork keyless relay): returns the AI connection under obsTheme=ai, else
+// null. The key/url/model are read raw (no sanitize) since they are opaque secrets; on a server-key
+// deploy they are absent and the endpoint uses its own env key. Kept separate from the appearance cfg.
 export function parseObsAiParams(search: string): ObsAiConfig | null {
   const params = new URLSearchParams(search);
   if (readObsThemeMode(params) !== 'ai') return null;
@@ -152,9 +153,11 @@ export function buildObsAppearanceFromShortcode(
     visualizerTunings: decoded?.visualizerTunings,
     visualizerOpacity: decoded?.visualizerOpacity,
     lyricsFontScale: decoded?.lyricsFontScale,
+    subtitleFontScale: decoded?.subtitleFontScale,
     lyricsFontWeight: decoded?.lyricsFontWeight,
     hideTranslationSubtitle: decoded?.hidePlayerTranslationSubtitle,
     showSubtitleTranslation: decoded?.showSubtitleTranslation,
+    subtitleContentMode: decoded?.subtitleContentMode,
     subtitleOverlayBackground: decoded?.subtitleOverlayBackground,
     lyricsFontStyle: decoded?.lyricsFontStyle,
     lyricsCustomFontFamily: decoded?.lyricsCustomFontFamily,

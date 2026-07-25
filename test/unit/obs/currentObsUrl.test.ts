@@ -52,13 +52,13 @@ describe('buildCurrentObsUrl', () => {
     it('bakes the applied custom theme in static mode', async () => {
         pointerMock.mockReturnValue('custom');
         customMock.mockReturnValue(CUSTOM);
-        await buildCurrentObsUrl('playercap');
+        await buildCurrentObsUrl('now-playing');
         expect(bakedTheme()).toBe(CUSTOM);
     });
 
     // Names, not identity: if the base preset ever moves or is renamed, this fails loudly.
     it('falls back to the built-in preset when static has no applied theme', async () => {
-        await buildCurrentObsUrl('playercap');
+        await buildCurrentObsUrl('now-playing');
         expect(bakedTheme().dark.name).toBe('Midnight Default');
         expect(bakedTheme().light.name).toBe('Daylight Default');
     });
@@ -66,7 +66,7 @@ describe('buildCurrentObsUrl', () => {
     // The constant hardcodes 'normal'; the saved custom and cached AI themes already carry the
     // user's stored intensity, so the fallback has to pick it up too.
     it('applies the stored animation intensity to the base preset fallback', async () => {
-        await buildCurrentObsUrl('playercap');
+        await buildCurrentObsUrl('now-playing');
         expect(bakedTheme().dark.animationIntensity).toBe('calm');
         expect(bakedTheme().light.animationIntensity).toBe('calm');
     });
@@ -76,25 +76,30 @@ describe('buildCurrentObsUrl', () => {
         customMock.mockReturnValue(CUSTOM);
         for (const mode of ['builtin', 'ai'] as const) {
             useSettingsUiStore.setState({ webObsThemeMode: mode });
-            await buildCurrentObsUrl('playercap');
+            await buildCurrentObsUrl('now-playing');
             expect(bakedTheme()).toBeNull();
         }
     });
 
-    it('keeps cfg the terminal segment behind the technical params', async () => {
-        useSettingsUiStore.setState({ isDaylight: true, transparentPlayerBackground: true });
-        const url = await buildCurrentObsUrl('playercap', 'localhost:8765', { obsTheme: 'static' });
-        expect(url).toContain('obsSource=playercap');
+    it('writes the theme mode marker and keeps cfg the terminal segment', async () => {
+        useSettingsUiStore.setState({ isDaylight: true, transparentPlayerBackground: true, webObsThemeMode: 'static' });
+        const url = await buildCurrentObsUrl('now-playing');
+        expect(url).toContain('obsSource=now-playing');
         expect(url).toContain('daylight=1');
         expect(url).toContain('transparent=1');
         expect(url).toContain('obsTheme=static');
         expect(url.slice(url.indexOf('cfg=')).includes('&')).toBe(false);
     });
 
+    it('marks the dynamic mode it was copied in', async () => {
+        useSettingsUiStore.setState({ webObsThemeMode: 'ai' });
+        expect(await buildCurrentObsUrl('now-playing')).toContain('obsTheme=ai');
+    });
+
     // The two params are not symmetric: daylight is omitted when off, transparent is always stated
     // so an absent value can never be mistaken for the toggle being on.
     it('omits daylight when off but still states transparent=0', async () => {
-        const url = await buildCurrentObsUrl('playercap');
+        const url = await buildCurrentObsUrl('now-playing');
         expect(url).not.toContain('daylight=');
         expect(url).toContain('transparent=0');
     });

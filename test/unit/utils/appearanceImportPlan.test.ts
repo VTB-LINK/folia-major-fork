@@ -47,6 +47,62 @@ describe('buildImportPlan', () => {
         expect(p.groups).toEqual(['theme', 'visualizer', 'fonts', 'background']);
     });
 
+    // Regression: applyImportedConfig applies these dev-merge fields, so buildImportPlan must diff
+    // them too. Left out of FIELD_GROUPS the plan emits no row, the plan-gated apply never sees the
+    // key, and the exported value is silently dropped on import with no warning.
+    it('plans the subtitle and harmony fields the apply path writes', () => {
+        const p = plan({
+            subtitleContentMode: 'romanization',
+            showHarmonySubtitle: true,
+            harmonySubtitleBackground: true,
+            subtitleFontScale: 1.4,
+        }, {
+            subtitleContentMode: 'translation',
+            showHarmonySubtitle: false,
+            harmonySubtitleBackground: false,
+            subtitleFontScale: 1,
+        }, unpinned);
+        expect(keys(p)).toEqual(expect.arrayContaining([
+            'subtitleContentMode', 'showHarmonySubtitle', 'harmonySubtitleBackground', 'subtitleFontScale',
+        ]));
+        expect(p.changes.find(c => c.key === 'subtitleContentMode')?.group).toBe('visualizer');
+        expect(p.changes.find(c => c.key === 'subtitleFontScale')?.group).toBe('fonts');
+    });
+
+    // The harmony toggles are diffed both ways: false is a real value, not "the exporter had none",
+    // so turning one off must still be offered.
+    it('plans a harmony toggle turning off', () => {
+        expect(keys(plan({ showHarmonySubtitle: false }, { showHarmonySubtitle: true }, unpinned)))
+            .toContain('showHarmonySubtitle');
+    });
+
+    // subtitleContentMode is enum-guarded in applyImportedConfig (only translation/romanization/none
+    // land), so an empty incoming value is skipped there and must not be promised here.
+    it('skips an empty subtitleContentMode the apply path would not set', () => {
+        expect(keys(plan({ subtitleContentMode: '' }, { subtitleContentMode: 'translation' }, unpinned)))
+            .not.toContain('subtitleContentMode');
+    });
+
+    // Now that buildVisualSettingsConfig carries the font weights they round-trip, so the plan must
+    // diff them. null is a real value ("use the mode default"), not "the exporter carried none", so
+    // it is diffed too and can reset a weight rather than being dropped.
+    it('plans the custom font weights, including a reset to the mode default', () => {
+        expect(keys(plan({ lyricsFontWeight: 700 }, { lyricsFontWeight: 400 }, unpinned)))
+            .toContain('lyricsFontWeight');
+        expect(keys(plan({ subtitleFontWeight: null }, { subtitleFontWeight: 700 }, unpinned)))
+            .toContain('subtitleFontWeight');
+    });
+
+    // The weight setters clamp+round, but the codec carries the raw value, so the plan diffs against
+    // the normalized value apply will store: the row shows what actually happens and a re-import of a
+    // non-canonical weight converges instead of re-appearing forever.
+    it('normalizes an incoming weight to what apply will store', () => {
+        expect(plan({ lyricsFontWeight: 555 }, { lyricsFontWeight: null }, unpinned)
+            .changes.find(c => c.key === 'lyricsFontWeight')?.to).toBe(560);
+        expect(keys(plan({ lyricsFontWeight: 555 }, { lyricsFontWeight: 560 }, unpinned)))
+            .not.toContain('lyricsFontWeight');
+    });
+
     // Tunings are nested objects; a structural compare keeps an unchanged tuning out of the plan.
     it('compares nested tunings structurally', () => {
         const tuning = { cameraSpeed: 1, motionAmount: 1 };

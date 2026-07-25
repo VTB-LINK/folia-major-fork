@@ -27,5 +27,11 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "exclude": ["node_modules", "swa-api"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "release",
+    "sync-server",
+    "swa-api"
+  ]
 }

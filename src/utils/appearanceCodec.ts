@@ -318,13 +318,17 @@ export const compressConfig = (config: any): string => {
     if (config.visualizerOpacity !== undefined) minified.vo = config.visualizerOpacity;
     if (config.hidePlayerTranslationSubtitle !== undefined) minified.hpts = config.hidePlayerTranslationSubtitle;
     if (config.showSubtitleTranslation !== undefined) minified.sst = config.showSubtitleTranslation;
+    if (config.subtitleContentMode !== undefined) minified.scm = config.subtitleContentMode;
     if (config.subtitleOverlayBackground !== undefined) minified.sob = config.subtitleOverlayBackground;
+    if (config.showHarmonySubtitle !== undefined) minified.shs = config.showHarmonySubtitle;
+    if (config.harmonySubtitleBackground !== undefined) minified.hsb = config.harmonySubtitleBackground;
     if (config.lyricsFontStyle) minified.lfs = config.lyricsFontStyle;
     if (config.lyricsFontScale !== undefined) minified.lfn = config.lyricsFontScale;
     if (config.lyricsFontWeight !== undefined) minified.lfw = config.lyricsFontWeight;
     if (config.lyricsFontFallbackFamilies?.length) minified.lff = config.lyricsFontFallbackFamilies;
     if (config.lyricsCustomFontFamily) minified.lcf = config.lyricsCustomFontFamily;
     if (config.subtitleFontInheritsLyrics !== undefined) minified.sfi = config.subtitleFontInheritsLyrics;
+    if (config.subtitleFontScale !== undefined) minified.sfsz = config.subtitleFontScale;
     if (config.subtitleFontStyle) minified.sfs = config.subtitleFontStyle;
     if (config.subtitleFontWeight !== undefined) minified.sfw = config.subtitleFontWeight;
     if (config.subtitleFontFamily) minified.sff = config.subtitleFontFamily;
@@ -386,6 +390,8 @@ export const decompressConfig = (str: string): any => {
         || parsed.hpts !== undefined
         || parsed.sst !== undefined
         || parsed.sob !== undefined
+        || parsed.shs !== undefined
+        || parsed.hsb !== undefined
         || parsed.lfw !== undefined
         || parsed.sfw !== undefined
         || parsed.lff !== undefined
@@ -405,13 +411,17 @@ export const decompressConfig = (str: string): any => {
         if (parsed.vo !== undefined) decompressed.visualizerOpacity = parsed.vo;
         if (parsed.hpts !== undefined) decompressed.hidePlayerTranslationSubtitle = parsed.hpts;
         if (parsed.sst !== undefined) decompressed.showSubtitleTranslation = parsed.sst;
+        if (parsed.scm !== undefined) decompressed.subtitleContentMode = parsed.scm;
         if (parsed.sob !== undefined) decompressed.subtitleOverlayBackground = parsed.sob;
+        if (parsed.shs !== undefined) decompressed.showHarmonySubtitle = parsed.shs;
+        if (parsed.hsb !== undefined) decompressed.harmonySubtitleBackground = parsed.hsb;
         if (parsed.lfs) decompressed.lyricsFontStyle = parsed.lfs;
         if (parsed.lfn !== undefined) decompressed.lyricsFontScale = parsed.lfn;
         if (parsed.lfw !== undefined) decompressed.lyricsFontWeight = parsed.lfw;
         if (parsed.lff) decompressed.lyricsFontFallbackFamilies = parsed.lff;
         if (parsed.lcf) decompressed.lyricsCustomFontFamily = parsed.lcf;
         if (parsed.sfi !== undefined) decompressed.subtitleFontInheritsLyrics = parsed.sfi;
+        if (parsed.sfsz !== undefined) decompressed.subtitleFontScale = parsed.sfsz;
         if (parsed.sfs) decompressed.subtitleFontStyle = parsed.sfs;
         if (parsed.sfw !== undefined) decompressed.subtitleFontWeight = parsed.sfw;
         if (parsed.sff) decompressed.subtitleFontFamily = parsed.sff;
@@ -439,10 +449,11 @@ export const decompressConfig = (str: string): any => {
     } else {
         const validKeys = [
             'theme', 'visualizerMode', 'randomVisualizerModePerSong', 'visualizerBackgroundMode', 'backgroundOpacity',
-            'visualizerOpacity', 'hidePlayerTranslationSubtitle', 'showSubtitleTranslation',
+            'visualizerOpacity', 'hidePlayerTranslationSubtitle', 'showSubtitleTranslation', 'subtitleContentMode',
             'subtitleOverlayBackground',
+            'showHarmonySubtitle', 'harmonySubtitleBackground',
             'lyricsFontStyle', 'lyricsFontScale', 'lyricsFontWeight', 'lyricsFontFallbackFamilies',
-            'subtitleFontInheritsLyrics', 'subtitleFontStyle', 'subtitleFontWeight', 'subtitleFontFamily',
+            'subtitleFontInheritsLyrics', 'subtitleFontScale', 'subtitleFontStyle', 'subtitleFontWeight', 'subtitleFontFamily',
             'subtitleFontFallbackFamilies', 'visualizerTunings', 'classicTuning',
             'cadenzaTuning', 'partitaTuning', 'fumeTuning', 'claddaghTuning', 'cappellaTuning',
             'tiltTuning', 'dioramaTuning', 'monetBackgroundTuning', 'nomandBackgroundTuning', 'latentBackgroundTuning', 'monetTuning',

@@ -4,6 +4,7 @@ import {
     type ThemePreferenceSwitchState,
 } from '../services/themePreferences';
 import { mergeUrlBackgroundList } from './urlBackground';
+import { normalizeFontWeight } from './fontStacks';
 import type { UrlBackgroundItem } from '../types';
 
 // src/utils/appearanceImportPlan.ts
@@ -72,7 +73,10 @@ const FIELD_GROUPS: Record<string, ImportGroup> = {
     visualizerOpacity: 'visualizer',
     hidePlayerTranslationSubtitle: 'visualizer',
     showSubtitleTranslation: 'visualizer',
+    subtitleContentMode: 'visualizer',
     subtitleOverlayBackground: 'visualizer',
+    showHarmonySubtitle: 'visualizer',
+    harmonySubtitleBackground: 'visualizer',
     visualizerTunings: 'visualizer',
     classicTuning: 'visualizer',
     cadenzaTuning: 'visualizer',
@@ -86,10 +90,15 @@ const FIELD_GROUPS: Record<string, ImportGroup> = {
 
     lyricsFontStyle: 'fonts',
     lyricsFontScale: 'fonts',
+    // Not truthy-guarded: null is a real value ("use the mode default"), so importing it must be
+    // able to reset a weight, and applyImportedConfig applies it unconditionally.
+    lyricsFontWeight: 'fonts',
     lyricsFontFallbackFamilies: 'fonts',
     lyricsCustomFontFamily: 'fonts',
     subtitleFontInheritsLyrics: 'fonts',
+    subtitleFontScale: 'fonts',
     subtitleFontStyle: 'fonts',
+    subtitleFontWeight: 'fonts',
     subtitleFontFamily: 'fonts',
     subtitleFontFallbackFamilies: 'fonts',
 
@@ -111,6 +120,9 @@ const FIELD_GROUPS: Record<string, ImportGroup> = {
 const TRUTHY_GUARDED_FIELDS = new Set([
     'visualizerMode',
     'visualizerBackgroundMode',
+    // applyImportedConfig only applies subtitleContentMode for the known enum values, all of which
+    // are truthy strings, so an empty/absent one is skipped there the same as here.
+    'subtitleContentMode',
     'lyricsFontStyle',
     'lyricsFontFallbackFamilies',
     'lyricsCustomFontFamily',
@@ -377,6 +389,16 @@ export function buildImportPlan({
             const same = isSameValue(incoming[key], from);
             if (!same && incomingFontAvailable === false) change.note = 'fontUnavailable';
             record(change, same);
+            continue;
+        }
+
+        // The weight setters clamp to [100,900] and round to a step of 10, but the codec carries the
+        // raw value. Diff against the value the setter will actually store, so the row shows what
+        // will happen and a non-canonical incoming weight (a hand-authored or cross-version config)
+        // does not re-appear on every import -- the same never-settling trap as animationIntensity.
+        if (key === 'lyricsFontWeight' || key === 'subtitleFontWeight') {
+            const to = normalizeFontWeight(incoming[key]);
+            record({ group, key, from: current[key], to }, isSameValue(to, current[key]));
             continue;
         }
 

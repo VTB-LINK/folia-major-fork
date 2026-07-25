@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, AlertCircle, Check, Copy, Loader2, Server, Trash2 } from 'lucide-react';
+import { Activity, AlertCircle, Check, Loader2, Server, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import type { NowPlayingConnectionStatus, StageSource, StageStatus, Theme } from '../../../types';
@@ -7,9 +7,9 @@ import type { NavidromeServerProfile } from '../../../types/navidrome';
 import type { ObsBrowserSourceStatus } from '../../../types/obsBrowserSource';
 import type { PlayerCapConnectionStatus } from '../../../types/playerCap';
 import { CustomSelect } from '../../shared/CustomSelect';
-import { ObsCopyUrlButton } from '../../shared/ObsCopyUrlButton';
 import { buildCurrentObsUrl } from '../../../utils/currentObsUrl';
 import { resolveWebObsTarget } from '../../../utils/webObsTarget';
+import { ObsCopyUrlButton } from '../../shared/ObsCopyUrlButton';
 import { hasCustomObsFont } from '../../../utils/visualSettingsConfig';
 import { useSettingsUiStore } from '../../../stores/useSettingsUiStore';
 

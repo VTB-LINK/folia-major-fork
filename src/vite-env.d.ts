@@ -20,6 +20,8 @@ declare global {
     mimeType?: string | null;
   }
 
+  type ElectronKugouOperation = import('./services/onlineMusic/kugouTransport').KugouOperation;
+
   interface ElectronAudioCacheStats {
     size: number;
     count: number;
@@ -38,6 +40,11 @@ declare global {
     port: number | null;
     error: string | null;
     updatedAt: number;
+  }
+
+  interface ElectronKugouApiStatus {
+    available: boolean;
+    error: string | null;
   }
 
   interface ElectronTaskbarControlState {
@@ -193,6 +200,7 @@ declare global {
     supported: boolean;
     updateCheckSupported: boolean;
     updateCheckSupportReason?: 'system' | 'channel' | null;
+    platform?: string;
     updateCheckEnabled: boolean;
     autoUpdateEnabled: boolean;
     currentVersion: string;
@@ -482,6 +490,11 @@ declare global {
       getNeteasePort: () => Promise<number>;
       getNeteaseApiStatus: () => Promise<ElectronNeteaseApiStatus>;
       onNeteaseApiStatusChanged: (callback: (status: ElectronNeteaseApiStatus) => void) => () => void;
+      getKugouApiStatus: () => Promise<ElectronKugouApiStatus>;
+      kugouRequest: (
+        operation: ElectronKugouOperation,
+        params?: Record<string, string | number | boolean | undefined>,
+      ) => Promise<unknown>;
       minimizeWindow: () => Promise<boolean>;
       toggleMaximizeWindow: () => Promise<boolean>;
       toggleFullscreenWindow: () => Promise<boolean>;

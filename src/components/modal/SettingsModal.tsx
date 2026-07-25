@@ -128,6 +128,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         hidePlayerProgressBar,
         hidePlayerTranslationSubtitle,
         showSubtitleTranslation,
+        subtitleContentMode,
         hidePlayerRightPanelButton,
         transparentPlayerBackground,
         autoHidePlayerChrome,
@@ -142,6 +143,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         backgroundOpacity,
         subtitleOverlayOpacity,
         subtitleOverlayBackground,
+        showHarmonySubtitle,
+        harmonySubtitleBackground,
         visualizerOpacity,
         visualizerBackgroundMode,
         isDaylight,
@@ -171,6 +174,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         urlBackgroundSelectedId,
         lyricsFontStyle,
         lyricsFontScale,
+        subtitleFontScale,
         lyricsFontWeight,
         lyricsCustomFontFamily,
         lyricsCustomFontLabel,
@@ -188,6 +192,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         handleToggleHidePlayerProgressBar: onToggleHidePlayerProgressBar,
         handleToggleHidePlayerTranslationSubtitle: onToggleHidePlayerTranslationSubtitle,
         handleToggleShowSubtitleTranslation: onToggleShowSubtitleTranslation,
+        handleSetSubtitleContentMode: onSubtitleContentModeChange,
         handleToggleHidePlayerRightPanelButton: onToggleHidePlayerRightPanelButton,
         handleToggleTransparentPlayerBackground: onToggleTransparentPlayerBackgroundFromStore,
         handleToggleAutoHidePlayerChrome: onToggleAutoHidePlayerChrome,
@@ -202,6 +207,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         handleSetBackgroundOpacity: setBackgroundOpacity,
         handleSetSubtitleOverlayOpacity: setSubtitleOverlayOpacity,
         handleToggleSubtitleOverlayBackground: onToggleSubtitleOverlayBackground,
+        handleToggleShowHarmonySubtitle: onToggleShowHarmonySubtitle,
+        handleToggleHarmonySubtitleBackground: onToggleHarmonySubtitleBackground,
         handleSetVisualizerOpacity: setVisualizerOpacity,
         handleSetVisualizerBackgroundMode: onVisualizerBackgroundModeChange,
         handleSetVisualizerMode: onVisualizerModeChange,
@@ -241,6 +248,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         handleClearCustomCappellaAvatar: onClearCappellaCustomAvatar,
         handleSetLyricsFontStyle: onLyricsFontStyleChange,
         handleSetLyricsFontScale: onLyricsFontScaleChange,
+        handleSetSubtitleFontScale: onSubtitleFontScaleChange,
         handleSetLyricsFontWeight: onLyricsFontWeightChange,
         handleSetLyricsCustomFont: onLyricsCustomFontChange,
         handleUploadLyricsCustomFont: onLyricsCustomFontUpload,
@@ -1348,7 +1356,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     )
                                                 )}
 
-                                                {showQuarkDownload && (
+                                                {showQuarkDownload && updateStatus.platform !== 'linux' && (
                                                     <>
                                                         <span className="opacity-25 select-none" style={{ color: 'var(--text-secondary)' }}>|</span>
 
@@ -1376,10 +1384,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                             </div>
                                         )}
 
-                                        {/* 第三行：国内网络提醒小字 */}
-                                        {showQuarkDownload && updateStatus?.availableVersion && (
-                                            <div className="text-xs opacity-45 mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                                                {t('options.chinaDownloadHint')}
+                                        {/* 第三行：多平台网络与手动下载提醒小字 */}
+                                        {updateStatus?.availableVersion && (
+                                            <div className="text-xs opacity-60 mt-0.5 space-y-0.5" style={{ color: 'var(--text-secondary)' }}>
+                                                {(updateStatus.platform === 'darwin' || updateStatus.platform === 'linux' || !updateStatus.supported) && (
+                                                    <div>
+                                                        {updateStatus.platform === 'darwin'
+                                                            ? t('options.macManualUpdateNotice')
+                                                            : updateStatus.platform === 'linux'
+                                                            ? t('options.linuxManualUpdateNotice')
+                                                            : t('options.manualUpdateNotice')}
+                                                    </div>
+                                                )}
+                                                {showQuarkDownload && updateStatus.platform !== 'linux' && (
+                                                    <div>{t('options.chinaDownloadHint')}</div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -1721,8 +1740,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         }}
                         hideTranslationSubtitle={hidePlayerTranslationSubtitle}
                         showSubtitleTranslation={showSubtitleTranslation}
+                        subtitleContentMode={subtitleContentMode}
                         subtitleOverlayOpacity={subtitleOverlayOpacity}
                         subtitleOverlayBackground={subtitleOverlayBackground}
+                        showHarmonySubtitle={showHarmonySubtitle}
+                        harmonySubtitleBackground={harmonySubtitleBackground}
                         classicTuning={classicTuning}
                         cadenzaTuning={cadenzaTuning}
                         partitaTuning={partitaTuning}
@@ -1737,6 +1759,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         monetPortraitImage={monetPortraitImage}
                         fontStyle={lyricsFontStyle}
                         fontScale={lyricsFontScale}
+                        subtitleFontScale={subtitleFontScale}
                         fontWeight={lyricsFontWeight}
                         customFontFamily={lyricsCustomFontFamily}
                         customFontLabel={lyricsCustomFontLabel}
@@ -1748,6 +1771,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         subtitleFontFallbackFamilies={subtitleFontFallbackFamilies}
                         onFontStyleChange={onLyricsFontStyleChange}
                         onFontScaleChange={onLyricsFontScaleChange}
+                        onSubtitleFontScaleChange={onSubtitleFontScaleChange}
                         onFontWeightChange={onLyricsFontWeightChange}
                         onCustomFontChange={onLyricsCustomFontChange}
                         onUploadCustomFont={onLyricsCustomFontUpload}
@@ -1761,8 +1785,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         onVisualizerOpacityChange={setVisualizerOpacity}
                         onToggleHideTranslationSubtitle={onToggleHidePlayerTranslationSubtitle}
                         onToggleShowSubtitleTranslation={onToggleShowSubtitleTranslation}
+                        onSubtitleContentModeChange={onSubtitleContentModeChange}
                         onSubtitleOverlayOpacityChange={setSubtitleOverlayOpacity}
                         onToggleSubtitleOverlayBackground={onToggleSubtitleOverlayBackground}
+                        onToggleShowHarmonySubtitle={onToggleShowHarmonySubtitle}
+                        onToggleHarmonySubtitleBackground={onToggleHarmonySubtitleBackground}
                         onClassicTuningChange={onClassicTuningChange}
                         onResetClassicTuning={onResetClassicTuning}
                         onPartitaTuningChange={onPartitaTuningChange}
@@ -1832,6 +1859,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         cappellaCustomAvatarImages={cappellaCustomAvatarImages}
                         monetPortraitImage={monetPortraitImage}
                         showSubtitleTranslation={showSubtitleTranslation}
+                        subtitleContentMode={subtitleContentMode}
                         lyricsFontStyle={lyricsFontStyle}
                         lyricsFontScale={lyricsFontScale}
                         lyricsFontWeight={lyricsFontWeight}
