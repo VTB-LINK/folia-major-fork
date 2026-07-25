@@ -776,7 +776,10 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                 )}
             </AnimatePresence>
 
-            {onlineProviderPlatform && (
+            {/* Fork: the online music providers (netease/kugou) need a backend the static web deploy
+                does not have, so their home tabs are already isElectron-gated above. Gate the
+                bottom-right provider switcher the same way so the web build hides it too. */}
+            {isElectron && onlineProviderPlatform && (
                 <OnlineProviderSwitcher
                     providers={onlineProviderPlatform.providers}
                     activeProviderId={activeProviderId}
