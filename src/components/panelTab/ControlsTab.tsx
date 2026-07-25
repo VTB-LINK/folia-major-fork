@@ -126,6 +126,14 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
     // usePlayerChromeAutoHide watches this value, so flipping the preference here also moves the
     // live visibility mode -- no separate call needed.
     const toggleAutoHidePlayerChrome = useSettingsUiStore(state => state.handleToggleAutoHidePlayerChrome);
+    // Player-UI hide toggles, surfaced here as well as in Lab settings so they can be flipped per
+    // stream segment without leaving the player (same store fields either way).
+    const hidePlayerProgressBar = useSettingsUiStore(state => state.hidePlayerProgressBar);
+    const toggleHidePlayerProgressBar = useSettingsUiStore(state => state.handleToggleHidePlayerProgressBar);
+    const hidePlayerTranslationSubtitle = useSettingsUiStore(state => state.hidePlayerTranslationSubtitle);
+    const toggleHidePlayerTranslationSubtitle = useSettingsUiStore(state => state.handleToggleHidePlayerTranslationSubtitle);
+    const showHarmonySubtitle = useSettingsUiStore(state => state.showHarmonySubtitle);
+    const toggleShowHarmonySubtitle = useSettingsUiStore(state => state.handleToggleShowHarmonySubtitle);
 
     // OBS static URL is a web-deploy concept, so this copy button is web-only.
     const isElectron = typeof window !== 'undefined' && Boolean((window as { electron?: unknown }).electron);
@@ -601,6 +609,30 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                         accent={theme.secondaryColor}
                         offClass={toggleOffClass}
                         onToggle={() => toggleAutoHidePlayerChrome(!autoHidePlayerChrome)}
+                    />
+                    <QuickToggleRow
+                        label={t('options.hidePlayerProgressBar')}
+                        hint={t('options.hidePlayerProgressBar')}
+                        on={hidePlayerProgressBar}
+                        accent={theme.secondaryColor}
+                        offClass={toggleOffClass}
+                        onToggle={() => toggleHidePlayerProgressBar(!hidePlayerProgressBar)}
+                    />
+                    <QuickToggleRow
+                        label={t('options.hidePlayerTranslationSubtitle')}
+                        hint={t('options.hidePlayerTranslationSubtitleDesc')}
+                        on={hidePlayerTranslationSubtitle}
+                        accent={theme.secondaryColor}
+                        offClass={toggleOffClass}
+                        onToggle={() => toggleHidePlayerTranslationSubtitle(!hidePlayerTranslationSubtitle)}
+                    />
+                    <QuickToggleRow
+                        label={t('options.showHarmonySubtitle')}
+                        hint={t('options.showHarmonySubtitleDesc')}
+                        on={showHarmonySubtitle}
+                        accent={theme.secondaryColor}
+                        offClass={toggleOffClass}
+                        onToggle={() => toggleShowHarmonySubtitle(!showHarmonySubtitle)}
                     />
                 </div>
 
