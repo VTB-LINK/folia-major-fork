@@ -70,12 +70,12 @@ describe('themePreferences', () => {
         delete (globalThis as { window?: unknown; }).window;
     });
 
-    it('defaults automatic song theme generation to disabled', () => {
+    it('defaults automatic song theme generation to enabled (fork default)', () => {
         (globalThis as { window?: { localStorage: Storage; }; }).window = {
             localStorage: createLocalStorageMock(),
         };
 
-        expect(readStoredThemeAutoGenerateEnabled()).toBe(false);
+        expect(readStoredThemeAutoGenerateEnabled()).toBe(true);
     });
 
     it('persists automatic song theme generation', () => {

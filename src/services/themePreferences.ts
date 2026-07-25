@@ -69,11 +69,14 @@ export const saveStoredThemeAutoSwitchEnabled = (enabled: boolean) => {
 };
 
 export const readStoredThemeAutoGenerateEnabled = () => {
+    // Fork default: on. With auto-switch (also on by default), the player regenerates a theme per
+    // song -- AI when a key is configured, cover-derived builtin otherwise -- so the ControlsTab
+    // theme selector lands on "AI" and previews what the OBS overlay (dynamic by default) will show.
     if (!isBrowser()) {
-        return false;
+        return true;
     }
 
-    return window.localStorage.getItem(THEME_AUTO_GENERATE_KEY) === 'true';
+    return window.localStorage.getItem(THEME_AUTO_GENERATE_KEY) !== 'false';
 };
 
 export const saveStoredThemeAutoGenerateEnabled = (enabled: boolean) => {
