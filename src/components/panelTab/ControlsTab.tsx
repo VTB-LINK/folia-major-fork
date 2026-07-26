@@ -12,9 +12,10 @@ import { syncNow } from '../../services/sync/syncCoordinator';
 import { isSyncConfigured } from '../../services/sync/syncConfig';
 import QuickEffectPicker from './QuickEffectPicker';
 import { ObsCopyUrlButton } from '../shared/ObsCopyUrlButton';
+import { ObsCopyCssButton } from '../shared/ObsCopyCssButton';
 import { buildCurrentObsUrl } from '../../utils/currentObsUrl';
 import { resolveWebObsTarget, selectWebObsSource } from '../../utils/webObsTarget';
-import { hasCustomObsFont } from '../../utils/visualSettingsConfig';
+import { resolveObsCopyHintKey } from '../../utils/visualSettingsConfig';
 
 // Controls tab composes compact visualizer and background pickers without changing player state flow.
 
@@ -147,9 +148,8 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
             await navigator.clipboard.writeText(url);
             setObsUrlCopied(true);
             window.setTimeout(() => setObsUrlCopied(false), 1600);
-            statusSetter?.(hasCustomObsFont()
-                ? { type: 'info', text: t('options.obsUrlCustomFontHint') }
-                : { type: 'success', text: t('status.copied') });
+            const hint = resolveObsCopyHintKey();
+            statusSetter?.({ type: hint.type, text: t(hint.key) });
         } catch (err) {
             // The URL is built asynchronously, so a browser that requires the write to stay inside
             // the click's own task can reject here. Say so instead of leaving the button inert.
@@ -637,10 +637,15 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                 </div>
 
                 {!isElectron && (
-                    <div className="pt-2 border-t border-white/5">
+                    <div className="pt-2 border-t border-white/5 space-y-2">
                         <ObsCopyUrlButton
                             onCopy={handleCopyObsUrl}
                             copied={obsUrlCopied}
+                            disabled={webObsSource === null}
+                            containerClassName="flex w-full"
+                            buttonClassName="flex-1 py-2"
+                        />
+                        <ObsCopyCssButton
                             disabled={webObsSource === null}
                             containerClassName="flex w-full"
                             buttonClassName="flex-1 py-2"

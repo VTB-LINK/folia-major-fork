@@ -11,6 +11,7 @@ import {
 import { applyVisualizerTuningsToSettings } from '../../visualizer/tuningRegistry';
 import { useSettingsUiStore } from '../../../stores/useSettingsUiStore';
 import { ObsCopyUrlButton } from '../../shared/ObsCopyUrlButton';
+import { ObsCopyCssButton } from '../../shared/ObsCopyCssButton';
 import { mergeUrlBackgroundList } from '../../../utils/urlBackground';
 import { getWebAiConfig, setWebAiConfig, type WebAiConfig } from '../../../services/webAiConfig';
 import { compressConfig, decompressConfig, readSavedCustomTheme } from '../../../utils/appearanceCodec';
@@ -20,7 +21,7 @@ import ImportConfirmDialog from './ImportConfirmDialog';
 import { extractCfgFromInput } from '../../../utils/obsUrl';
 import { buildCurrentObsUrl } from '../../../utils/currentObsUrl';
 import { resolveWebObsTarget, selectWebObsSource } from '../../../utils/webObsTarget';
-import { buildVisualSettingsConfig, hasCustomObsFont } from '../../../utils/visualSettingsConfig';
+import { buildVisualSettingsConfig, resolveObsCopyHintKey } from '../../../utils/visualSettingsConfig';
 
 // src/components/modal/settings/AppearanceSettingsSubview.tsx
 // Visual settings subview for theme presets, lyric renderer entry, layout settings, and configurations import/export.
@@ -286,9 +287,8 @@ const AppearanceSettingsSubview: React.FC<AppearanceSettingsSubviewProps> = ({
             await navigator.clipboard.writeText(url);
             setCopiedType('obsurl');
             setTimeout(() => setCopiedType('none'), 2000);
-            store.statusSetter?.(hasCustomObsFont()
-                ? { type: 'info', text: t('options.obsUrlCustomFontHint') }
-                : { type: 'success', text: t('status.copied') });
+            const hint = resolveObsCopyHintKey();
+            store.statusSetter?.({ type: hint.type, text: t(hint.key) });
         } catch (err) {
             // The URL is built asynchronously, so a browser that requires the write to stay inside the
             // click's own task can reject here. Say so instead of leaving the button looking inert.
@@ -917,6 +917,7 @@ const AppearanceSettingsSubview: React.FC<AppearanceSettingsSubviewProps> = ({
                                 disabled={webObsSource === null}
                             />
                         )}
+                        {!isElectron && <ObsCopyCssButton disabled={webObsSource === null} />}
                         <div className="flex-1 min-w-[20px]" />
                         <button
                             type="button"
