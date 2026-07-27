@@ -466,8 +466,10 @@ export default function App() {
     // fresh song behaves exactly like the old reset). currentSongFullRef.current holds the live song
     // for the change handler below, so a user's correction is saved against the right track.
     useEffect(() => {
-        setLyricTimelineOffsetMs(readLyricOffset(currentSong?.id));
-    }, [currentSong?.id]);
+        const nextOffsetMs = readLyricOffset(currentSong?.id);
+        setLyricTimelineOffsetMs(nextOffsetMs);
+        lyricCurrentTime.set(-nextOffsetMs / 1000);
+    }, [currentSong?.id, lyricCurrentTime]);
 
     const handleLyricTimelineOffsetChange = useCallback((offsetMs: number) => {
         setLyricTimelineOffsetMs(offsetMs);
@@ -1559,6 +1561,7 @@ export default function App() {
         handleNextTrack,
         handlePrevTrack,
         handleToggleLoopMode,
+        navigateBackFromPlayer,
         pausePlayback,
         resumePlayback,
         syncStageLyricsClock,
@@ -3062,7 +3065,11 @@ export default function App() {
                     transition={{ duration: 0.25, ease: 'easeInOut' }}
                 >
                     {currentView === 'home' || currentView === 'player' ? (
-                        <Home model={homeModel} isHomeFullyHidden={isHomeFullyHidden} />
+                        <Home
+                            model={homeModel}
+                            isHomeFullyHidden={isHomeFullyHidden}
+                            isInteractive={shouldShowHomeSurface}
+                        />
                     ) : null}
                 </motion.div>
             </div>
@@ -3190,6 +3197,8 @@ export default function App() {
                 isExecuting={commandPalette.isExecuting}
                 isOpen={commandPalette.isOpen}
                 matches={commandPalette.matches}
+                currentSong={currentSong}
+                pinnedCommands={commandPalette.pinnedCommands}
                 query={commandPalette.query}
                 theme={theme}
                 onActiveCommandChange={commandPalette.setActiveCommand}
@@ -3203,7 +3212,11 @@ export default function App() {
                 onCompositionStart={() => commandPalette.setIsComposing(true)}
                 onExecuteActive={commandPalette.executeActive}
                 onExecuteMatch={commandPalette.executeMatch}
+                onExecutePinnedCommand={commandPalette.executePinnedCommand}
+                onMoveSongToEnd={moveQueueSongToEnd}
+                onMoveSongToNext={moveQueueSongToNext}
                 onQueryChange={commandPalette.setQuery}
+                onRemoveSong={removeQueueSong}
             />
 
             <AppDialogs model={appDialogsModel} />
