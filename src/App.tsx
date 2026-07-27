@@ -466,8 +466,10 @@ export default function App() {
     // fresh song behaves exactly like the old reset). currentSongFullRef.current holds the live song
     // for the change handler below, so a user's correction is saved against the right track.
     useEffect(() => {
-        setLyricTimelineOffsetMs(readLyricOffset(currentSong?.id));
-    }, [currentSong?.id]);
+        const nextOffsetMs = readLyricOffset(currentSong?.id);
+        setLyricTimelineOffsetMs(nextOffsetMs);
+        lyricCurrentTime.set(-nextOffsetMs / 1000);
+    }, [currentSong?.id, lyricCurrentTime]);
 
     const handleLyricTimelineOffsetChange = useCallback((offsetMs: number) => {
         setLyricTimelineOffsetMs(offsetMs);
@@ -3190,6 +3192,7 @@ export default function App() {
                 isExecuting={commandPalette.isExecuting}
                 isOpen={commandPalette.isOpen}
                 matches={commandPalette.matches}
+                pinnedCommands={commandPalette.pinnedCommands}
                 query={commandPalette.query}
                 theme={theme}
                 onActiveCommandChange={commandPalette.setActiveCommand}
@@ -3203,6 +3206,7 @@ export default function App() {
                 onCompositionStart={() => commandPalette.setIsComposing(true)}
                 onExecuteActive={commandPalette.executeActive}
                 onExecuteMatch={commandPalette.executeMatch}
+                onExecutePinnedCommand={commandPalette.executePinnedCommand}
                 onQueryChange={commandPalette.setQuery}
             />
 
