@@ -740,6 +740,7 @@ export default {
     "regenerateObsBrowserSourceToken": "Regenerate Token",
     "obsBrowserSourceClients": "Clients",
     "visualSettings": "Visual Settings",
+    "daylightMode": "Light / Dark Mode",
     "lyricsRenderer": "Lyrics Animation",
     "lyricsRendererDesc": "Choose the lyrics animation mode used on the playback page.",
     "lyricsAnimationAdjust": "Lyrics Animation Adjust",
@@ -777,11 +778,11 @@ export default {
     "resumePreview": "Resume preview",
     "subtitleOverlayOpacity": "Subtitle Opacity",
     "subtitleOverlayBackground": "Subtitle Background",
-    "subtitleOverlayBackgroundDesc": "Add a theme-aware translucent background to improve readability over busy visuals.",
+    "subtitleOverlayBackgroundDesc": "Add a theme-aware, soft diffused halo to improve readability over busy visuals.",
     "showHarmonySubtitle": "Show Harmony Subtitles",
     "showHarmonySubtitleDesc": "Show or hide the top harmony lyric overlay.",
     "harmonySubtitleBackground": "Harmony Subtitle Background",
-    "harmonySubtitleBackgroundDesc": "Add a fixed 50% opaque background behind harmony subtitles.",
+    "harmonySubtitleBackgroundDesc": "Add a soft, diffused halo behind harmony subtitles.",
     "harmonySubtitleSettings": "Harmony Subtitles",
     "harmonySubtitleSettingsDesc": "Controls for the top harmony lyric overlay.",
     "showSubtitleTranslation": "Show Translation",
@@ -1226,6 +1227,25 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_6_5": {
+      "intro": "Here are the new features and improvements in version 0.6.6.",
+      "lyricPreview": {
+        "title": "Improved Lyric Animation Preview",
+        "description": "Lyric animation style settings now include a pause control for the preview and a new set of placeholder lyrics."
+      },
+      "responseSmoothness": {
+        "title": "Smoother Responsiveness",
+        "description": "Improved responsiveness across multiple components for smoother interactions and dynamic updates."
+      },
+      "commandPaletteV2": {
+        "title": "Command Palette v2",
+        "description": "Pin frequently used features in Appearance settings and benefit from expanded command memory."
+      },
+      "commandPaletteQueue": {
+        "title": "Playback Queue in Command Palette",
+        "description": "Manage the playback queue directly in the Command Palette with the Queue command."
+      }
+    },
     "v0_6_3": {
       "intro": "Here are the new features and improvements in the latest version.",
       "pendoloTheme": {

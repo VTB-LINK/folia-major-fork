@@ -77,6 +77,7 @@ import { useThemeQuickEditorStore } from './stores/useThemeQuickEditorStore';
 import { resolveCommandPaletteSearchSource, resolveSearchSource, useSearchNavigationStore } from './stores/useSearchNavigationStore';
 import { useCollectionNavigationStore } from './stores/useCollectionNavigationStore';
 import { useSettingsUiStore } from './stores/useSettingsUiStore';
+import { useOnlineProviderAccountStore } from './stores/useOnlineProviderAccountStore';
 import { useShallow } from 'zustand/react/shallow';
 import { clampMediaVolume } from './utils/appPlaybackHelpers';
 import { getOnlineProviderIdForSong, isLocalPlaybackSong, isNavidromePlaybackSong, isStagePlaybackSong, resolveNavidromePlaybackCarrier } from './utils/appPlaybackGuards';
@@ -834,12 +835,20 @@ export default function App() {
         t,
     });
 
-    const { refresh: refreshKugouLibrary } = useKugouLibrary();
+    const {
+        refresh: refreshKugouLibrary,
+        logout: logoutKugouLibrary,
+        checkLoginStatus: checkKugouLoginStatus,
+    } = useKugouLibrary();
     const [isProviderSyncing, setIsProviderSyncing] = useState(false);
     const onlineProviderRefreshers = useMemo(() => ({
         netease: refreshUserData,
         kugou: refreshKugouLibrary,
     }), [refreshKugouLibrary, refreshUserData]);
+    const onlineProviderLogouts = useMemo(() => ({
+        netease: handleLogout,
+        kugou: logoutKugouLibrary,
+    }), [handleLogout, logoutKugouLibrary]);
     const [providerSwitchPending, setProviderSwitchPending] = useState<{
         nextProviderId: OnlineProviderId;
         resolve: (confirmed: boolean) => void;
@@ -896,7 +905,7 @@ export default function App() {
             onClose: handleCancelProviderSwitch,
         };
     }, [handleCancelProviderSwitch, handleConfirmProviderSwitch, isDaylight, providerSwitchPending, t]);
-    const onlineProviderPlatform = useOnlineProviderPlatform(onlineProviderRefreshers, prepareOnlineProviderSwitch);
+    const onlineProviderPlatform = useOnlineProviderPlatform(onlineProviderRefreshers, prepareOnlineProviderSwitch, onlineProviderLogouts);
     const handleActiveProviderSyncData = useCallback(async () => {
         const providerId = onlineProviderPlatform.activeProviderId;
         if (providerId === 'netease') {
@@ -907,9 +916,13 @@ export default function App() {
         setIsProviderSyncing(true);
         try {
             const synced = await onlineProviderPlatform.refreshProvider(providerId);
+            const refreshedAccount = useOnlineProviderAccountStore.getState().accounts[providerId];
+            const authExpired = synced === false && refreshedAccount?.error === 'auth-required';
             setStatusMsg({
                 type: synced === false ? 'error' : 'success',
-                text: synced === false ? t('status.syncFailed') : t('status.dataSynced'),
+                text: synced === false
+                    ? t(authExpired ? 'status.loginExpired' : 'status.syncFailed')
+                    : t('status.dataSynced'),
             });
         } catch (error) {
             console.warn('[OmniSync] Provider data sync failed', { providerId, error });
@@ -939,7 +952,7 @@ export default function App() {
         }
 
         lastHomeProviderRefreshRef.current = { providerId, at: startedAt };
-        void refreshActiveProviderPlaylists().catch(error => {
+        void refreshActiveProviderPlaylists().catch(async error => {
             if (lastHomeProviderRefreshRef.current?.providerId === providerId
                 && lastHomeProviderRefreshRef.current.at === startedAt) {
                 lastHomeProviderRefreshRef.current = null;
@@ -948,8 +961,16 @@ export default function App() {
                 providerId,
                 name: error instanceof Error ? error.name : 'Error',
             });
+            const account = useOnlineProviderAccountStore.getState().accounts[providerId];
+            if (providerId !== 'kugou' || !account?.user) return;
+
+            const user = await checkKugouLoginStatus();
+            const refreshedAccount = useOnlineProviderAccountStore.getState().accounts.kugou;
+            if (!user && refreshedAccount?.error === 'auth-required') {
+                setStatusMsg({ type: 'error', text: t('status.loginExpired') });
+            }
         });
-    }, [currentView, hasCollection, onlineProviderPlatform.activeProvider?.freshness, onlineProviderPlatform.activeProviderId, refreshActiveProviderPlaylists]);
+    }, [checkKugouLoginStatus, currentView, hasCollection, onlineProviderPlatform.activeProvider?.freshness, onlineProviderPlatform.activeProviderId, refreshActiveProviderPlaylists, setStatusMsg, t]);
 
     const {
         stageStatus,

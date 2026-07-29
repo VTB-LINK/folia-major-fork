@@ -743,6 +743,7 @@ export default {
     "regenerateObsBrowserSourceToken": "重新生成 Token",
     "obsBrowserSourceClients": "连接数",
     "visualSettings": "视觉设置",
+    "daylightMode": "明暗模式",
     "lyricsRenderer": "歌词动画",
     "lyricsRendererDesc": "选择播放页使用的歌词动画模式。",
     "lyricsAnimationAdjust": "歌词动画样式",
@@ -780,11 +781,11 @@ export default {
     "resumePreview": "继续预览",
     "subtitleOverlayOpacity": "字幕透明度",
     "subtitleOverlayBackground": "字幕背景",
-    "subtitleOverlayBackgroundDesc": "为底部字幕添加主题自适应的半透明背景，提高复杂画面中的可读性。",
+    "subtitleOverlayBackgroundDesc": "为底部字幕添加主题自适应的柔和扩散光晕，提高复杂画面中的可读性。",
     "showHarmonySubtitle": "显示和声字幕",
     "showHarmonySubtitleDesc": "显示或隐藏顶部的和声歌词层。",
     "harmonySubtitleBackground": "和声字幕背景",
-    "harmonySubtitleBackgroundDesc": "为和声字幕添加固定 50% 透明度的背景。",
+    "harmonySubtitleBackgroundDesc": "为和声字幕添加柔和扩散的光晕背景。",
     "harmonySubtitleSettings": "和声字幕",
     "harmonySubtitleSettingsDesc": "调整顶部和声歌词层的显示方式。",
     "showSubtitleTranslation": "显示翻译",
@@ -1227,6 +1228,25 @@ export default {
     "noDescription": "暂无详细介绍",
   },
   "releaseNotes": {
+    "v0_6_5": {
+      "intro": "以下是 0.6.6 的新功能与改进",
+      "lyricPreview": {
+        "title": "歌词动画预览改进",
+        "description": "歌词动画样式设置新增预览窗口暂停功能，并提供一套全新的占位符歌词。"
+      },
+      "responseSmoothness": {
+        "title": "响应流畅度优化",
+        "description": "优化多个组件的响应表现，让界面交互与动态更新更加流畅。"
+      },
+      "commandPaletteV2": {
+        "title": "命令面板 v2",
+        "description": "可在界面设置中固定常用功能，并扩展命令记忆能力。"
+      },
+      "commandPaletteQueue": {
+        "title": "命令面板播放队列",
+        "description": "可直接在命令面板中使用“队列”命令管理播放队列。"
+      }
+    },
     "v0_6_3": {
       "intro": "以下是最新版本的新功能与改进",
       "pendoloTheme": {

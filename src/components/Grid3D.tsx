@@ -170,8 +170,10 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
             ...(cloudPlaylist ? [cloudPlaylist] : []),
         ]
         : []);
+    const activeProviderNeedsRelogin = activeProviderSummary?.error === 'auth-required';
 
     const [focusedIndex, setFocusedIndex] = useState(0);
+    const gridRootRef = useRef<HTMLDivElement>(null);
     const [isLocalImporting, setIsLocalImporting] = useState(false);
     const [isLocalRefreshing, setIsLocalRefreshing] = useState(false);
     const [scanProgress, setScanProgress] = useState<{
@@ -295,7 +297,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         setFavoriteAlbums([]);
         setRadioItems([]);
         setFocusedIndex(0);
-    }, [activeProviderId]);
+    }, [activeProviderId, activeUser?.id]);
 
     const fetchFavoriteAlbums = async () => {
         setLoadingAlbums(true);
@@ -518,8 +520,16 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
 
     const bottomPadding = currentTrack ? 'pb-28 md:pb-32' : '';
 
+    const focusActiveSlider = () => {
+        requestAnimationFrame(() => {
+            gridRootRef.current
+                ?.querySelector<HTMLElement>('[data-grid3d-slider]')
+                ?.focus({ preventScroll: true });
+        });
+    };
+
     return (
-        <div className={`relative w-full h-full flex flex-col font-sans overflow-hidden ${mainBg} pointer-events-auto backdrop-blur-sm ${bottomPadding}`}>
+        <div ref={gridRootRef} className={`relative w-full h-full flex flex-col font-sans overflow-hidden ${mainBg} pointer-events-auto backdrop-blur-sm ${bottomPadding}`}>
 
             {/* Main Header Container (Fades out when sliding/interacting) */}
             <div className="transition-opacity duration-300 ease-in-out z-20 opacity-100 select-none">
@@ -618,7 +628,10 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                                     return (
                                         <button
                                             key={tab.key}
-                                            onClick={() => setHomeViewTab(tab.key as any)}
+                                            onClick={() => {
+                                                setHomeViewTab(tab.key as any);
+                                                focusActiveSlider();
+                                            }}
                                             className={`relative inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition-colors duration-300 whitespace-nowrap ${isActive ? activeTabBg : navPillInactiveText}`}
                                         >
                                             {isActive && (
@@ -680,8 +693,12 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                         providers={onlineProviderPlatform?.providers || omni.getProviderSummaries()}
                         activeProviderId={activeProviderId}
                         isDaylight={isDaylight}
-                        title={t('home.guestTitle')}
-                        prompt={t('home.guestPrompt')}
+                        title={activeProviderNeedsRelogin ? t('status.loginExpired') : t('home.guestTitle')}
+                        prompt={activeProviderNeedsRelogin
+                            ? t('home.guestPromptProvider', {
+                                provider: activeProviderSummary?.shortName || activeProviderSummary?.displayName || activeProviderId,
+                            })
+                            : t('home.guestPrompt')}
                         getActionLabel={provider => provider.status === 'authenticated'
                             ? t('home.switchToProvider', { provider: provider.shortName || provider.displayName })
                             : t('home.connectProviderAccount', { provider: provider.shortName || provider.displayName })}
@@ -796,6 +813,9 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                         } else {
                             void initLogin(provider.providerId);
                         }
+                    }}
+                    onLogout={provider => {
+                        void onlineProviderPlatform.logoutProvider(provider.providerId);
                     }}
                 />
             )}
