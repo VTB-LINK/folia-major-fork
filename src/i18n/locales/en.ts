@@ -1227,8 +1227,23 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_6_8": {
+      "intro": "Here are the new features and improvements in version 0.6.8.",
+      "navidromeRecent": {
+        "title": "Recent Music in Navidrome",
+        "description": "New Recently Added and Recently Played pages make it easier to resume listening or discover new additions to your library."
+      },
+      "cappellaSafeArea": {
+        "title": "Improved Cappella Lyric Layout",
+        "description": "The lower lyric safe area now adapts to the actual line height, reducing overlaps across different font sizes and lyric layouts."
+      },
+      "kugouPlayback": {
+        "title": "Kugou Playback Compatibility",
+        "description": "Improved Kugou media URL handling in the desktop app to fix playback failures affecting some tracks."
+      }
+    },
     "v0_6_5": {
-      "intro": "Here are the new features and improvements in version 0.6.6.",
+      "intro": "Here are the new features and improvements in version 0.6.7.",
       "lyricPreview": {
         "title": "Improved Lyric Animation Preview",
         "description": "Lyric animation style settings now include a pause control for the preview and a new set of placeholder lyrics."
@@ -1481,7 +1496,7 @@ export default {
     "songs": "Songs",
     "recents": "Recently Played",
     "allAlbums": "All",
-    "recentlyAdded": "New",
+    "recentlyAdded": "Recently Added",
     "noAlbumsFound": "No albums found",
     "noPlaylistsFound": "No playlists found",
     "noArtistsFound": "No artists found",
