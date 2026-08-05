@@ -19,6 +19,7 @@ export function buildVisualSettingsConfig(): Record<string, unknown> {
   return {
     songThemeAutoSwitchEnabled,
     songThemeAutoGenerateEnabled,
+    followSystemTheme: store.followSystemTheme,
     visualizerMode: store.visualizerMode,
     randomVisualizerModePerSong: store.randomVisualizerModePerSong,
     visualizerBackgroundMode: store.visualizerBackgroundMode,
@@ -61,6 +62,7 @@ export function buildVisualSettingsConfig(): Record<string, unknown> {
     latentBackgroundTuning: store.latentBackgroundTuning,
     monetTuning: store.monetTuning,
     pendoloTuning: store.pendoloTuning,
+    sonnetTuning: store.sonnetTuning,
     urlBackgroundList: store.urlBackgroundList,
     urlBackgroundSelectedId: store.urlBackgroundSelectedId,
   };

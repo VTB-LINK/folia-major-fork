@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X, Command, MousePointer2, Keyboard, Settings2, Trash2, Database, Monitor, PlayCircle, Loader2, Server, Check, AlertCircle, FlaskConical, ChevronLeft, ChevronRight, RefreshCw, Download, ExternalLink, Sparkles, Palette, CircleHelp, Languages, Moon, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getCacheUsageByCategory, clearCacheByCategory, clearAllData } from '../../services/db';
-import { DualTheme, StageStatus, StageSource, Theme, ThemeMode, type CadenzaTuning, type CappellaEmojiImage, type CappellaTuning, type FumeTuning, type NowPlayingConnectionStatus, type PartitaTuning, type TiltTuning, type StoredCustomLyricsFont, type VisualizerMode } from '../../types';
+import { DualTheme, StageStatus, StageSource, Theme, ThemeMode, type CadenzaTuning, type CappellaEmojiImage, type CappellaTuning, type FumeTuning, type NowPlayingConnectionStatus, type PartitaTuning, type ReplayGainMode, type TiltTuning, type StoredCustomLyricsFont, type VisualizerMode } from '../../types';
 import { getNavidromeConfig, saveNavidromeConfig, clearNavidromeConfig, hashPassword, navidromeApi, isNavidromeEnabled, setNavidromeEnabled, getCachedNavidromeServerProfile, refreshNavidromeServerProfile } from '../../services/navidromeService';
 import { NavidromeConfig, NavidromeServerProfile } from '../../types/navidrome';
 import VisPlayground from '../visualizer/VisPlayground';
@@ -68,6 +68,8 @@ interface SettingsModalProps {
     onToggleObsBrowserSource?: (enabled: boolean) => Promise<void> | void;
     onRegenerateObsBrowserSourceToken?: () => Promise<void> | void;
     onAudioOutputDeviceChange: (deviceId: string) => Promise<boolean> | boolean;
+    replayGainMode: ReplayGainMode;
+    onReplayGainModeChange: (mode: ReplayGainMode) => void;
     onToggleTransparentPlayerBackground?: (enabled: boolean) => Promise<void> | void;
     aiTheme?: DualTheme | null;
     customTheme?: DualTheme | null;
@@ -118,6 +120,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     onToggleObsBrowserSource,
     onRegenerateObsBrowserSourceToken,
     onAudioOutputDeviceChange,
+    replayGainMode,
+    onReplayGainModeChange,
     onToggleTransparentPlayerBackground,
     aiTheme,
     customTheme,
@@ -152,7 +156,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         visualizerOpacity,
         visualizerBackgroundMode,
         isDaylight,
+        followSystemTheme,
         setDaylightPreference: onSetDaylightPreference,
+        setFollowSystemTheme: onSetFollowSystemTheme,
         visualizerMode,
         grid3dCardStyle,
         classicTuning,
@@ -168,6 +174,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         latentBackgroundTuning,
         monetTuning,
         pendoloTuning,
+        sonnetTuning,
         cappellaCustomEmojiImages,
         isLoadingCappellaCustomEmojiPack,
         cappellaCustomAvatarImages,
@@ -242,6 +249,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         handleResetMonetTuning: onResetMonetTuning,
         handleSetPendoloTuning: onPendoloTuningChange,
         handleResetPendoloTuning: onResetPendoloTuning,
+        handleSetSonnetTuning: onSonnetTuningChange,
+        handleResetSonnetTuning: onResetSonnetTuning,
         handleUploadMonetBackgroundImage: onUploadMonetBackgroundImage,
         handleClearMonetBackgroundImage: onClearMonetBackgroundImage,
         handleUploadMonetPortraitImage: onUploadMonetPortraitImage,
@@ -1499,11 +1508,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 hasCustomTheme={hasCustomTheme}
                                                 isCustomThemePreferred={isCustomThemePreferred}
                                                 isDaylight={isDaylight}
+                                                followSystemTheme={followSystemTheme}
                                                 onApplyCustomTheme={onApplyCustomTheme}
                                                 onApplyDefaultTheme={onApplyDefaultTheme}
                                                 onOpenThemePark={() => setShowThemePark(true)}
                                                 onOpenVisPlayground={() => setShowVisPlayground(true)}
                                                 onToggleSongThemeAutoGenerate={onToggleSongThemeAutoGenerate}
+                                                onToggleFollowSystemTheme={onSetFollowSystemTheme}
                                                 onToggleCustomThemePreferred={onToggleCustomThemePreferred}
                                                 onToggleSongThemeAutoSwitch={onToggleSongThemeAutoSwitch}
                                                 onToggleTransparentPlayerBackground={resolvedToggleTransparentPlayerBackground}
@@ -1536,6 +1547,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 isOpen={true}
                                                 isDaylight={isDaylight}
                                                 onAudioOutputDeviceChange={onAudioOutputDeviceChange}
+                                                replayGainMode={replayGainMode}
+                                                onReplayGainModeChange={onReplayGainModeChange}
                                                 settingsCardClass={settingsCardClass}
                                                 theme={theme}
                                                 utilityGhostButtonClass={utilityGhostButtonClass}
@@ -1777,6 +1790,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         dioramaTuning={dioramaTuning}
                         monetTuning={monetTuning}
                         pendoloTuning={pendoloTuning}
+                        sonnetTuning={sonnetTuning}
                         cappellaCustomEmojiImages={cappellaCustomEmojiImages}
                         cappellaCustomAvatarImages={cappellaCustomAvatarImages}
                         monetPortraitImage={monetPortraitImage}
@@ -1831,6 +1845,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         onResetMonetTuning={onResetMonetTuning}
                         onPendoloTuningChange={onPendoloTuningChange}
                         onResetPendoloTuning={onResetPendoloTuning}
+                        onSonnetTuningChange={onSonnetTuningChange}
+                        onResetSonnetTuning={onResetSonnetTuning}
                         onUploadMonetPortraitImage={onUploadMonetPortraitImage}
                         onClearMonetPortraitImage={onClearMonetPortraitImage}
                         isLoadingMonetPortraitImage={isLoadingMonetPortraitImage}
@@ -1861,6 +1877,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             diorama: dioramaTuning,
                             monet: monetTuning,
                             pendolo: pendoloTuning,
+                            sonnet: sonnetTuning,
                         }}
                         staticMode={staticMode}
                         visualizerOpacity={visualizerOpacity}

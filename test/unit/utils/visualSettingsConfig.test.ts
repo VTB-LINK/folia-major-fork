@@ -14,6 +14,7 @@ import { buildVisualSettingsConfig } from '@/utils/visualSettingsConfig';
 import { readStoredThemeAutoGenerateEnabled, readStoredThemeAutoSwitchEnabled } from '@/services/themePreferences';
 import { compressConfig, decompressConfig } from '@/utils/appearanceCodec';
 import { extractCfgFromInput } from '@/utils/obsUrl';
+import { DEFAULT_SONNET_TUNING } from '@/types';
 import { useSettingsUiStore } from '@/stores/useSettingsUiStore';
 
 const switchMock = vi.mocked(readStoredThemeAutoSwitchEnabled);
@@ -27,6 +28,21 @@ describe('buildVisualSettingsConfig', () => {
     beforeEach(() => {
         switchMock.mockReset().mockReturnValue(true);
         generateMock.mockReset().mockReturnValue(false);
+        useSettingsUiStore.setState({ followSystemTheme: false, isDaylight: false });
+    });
+
+    it('carries the system theme preference and keeps manual daylight changes authoritative', () => {
+        useSettingsUiStore.setState({ followSystemTheme: true, isDaylight: false });
+        expect(buildVisualSettingsConfig().followSystemTheme).toBe(true);
+
+        const restored = decompressConfig(compressConfig(buildVisualSettingsConfig()));
+        expect(restored.followSystemTheme).toBe(true);
+
+        useSettingsUiStore.getState().setDaylightPreference(true);
+        expect(useSettingsUiStore.getState()).toMatchObject({
+            followSystemTheme: false,
+            isDaylight: true,
+        });
     });
 
     it('carries the song-theme automation flags', () => {
@@ -79,5 +95,21 @@ describe('buildVisualSettingsConfig', () => {
         const restored = decompressConfig(extractCfgFromInput(asObsUrl(compressConfig(buildVisualSettingsConfig()))));
         expect(restored.lyricsFontWeight).toBeNull();
         expect(restored.subtitleFontWeight).toBeNull();
+    });
+
+    it('carries Sonnet visibility tuning and round-trips it through a copied OBS URL', () => {
+        const sonnetTuning = {
+            ...DEFAULT_SONNET_TUNING,
+            showOnlyText: true,
+            showGuide: false,
+            showFixedGeo: false,
+            showBackgroundDecor: false,
+            textureResolution: 1.75,
+        };
+        useSettingsUiStore.setState({ sonnetTuning });
+
+        expect(buildVisualSettingsConfig()).toMatchObject({ sonnetTuning });
+        const restored = decompressConfig(extractCfgFromInput(asObsUrl(compressConfig(buildVisualSettingsConfig()))));
+        expect(restored.sonnetTuning).toEqual(sonnetTuning);
     });
 });

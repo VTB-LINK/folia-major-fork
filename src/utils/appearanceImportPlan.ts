@@ -88,6 +88,7 @@ const FIELD_GROUPS: Record<string, ImportGroup> = {
     dioramaTuning: 'visualizer',
     monetTuning: 'visualizer',
     pendoloTuning: 'visualizer',
+    sonnetTuning: 'visualizer',
 
     lyricsFontStyle: 'fonts',
     lyricsFontScale: 'fonts',
@@ -113,6 +114,7 @@ const FIELD_GROUPS: Record<string, ImportGroup> = {
 
     songThemeAutoSwitchEnabled: 'songTheme',
     songThemeAutoGenerateEnabled: 'songTheme',
+    followSystemTheme: 'theme',
 };
 
 // Fields the import applies only when the incoming value is truthy, so an incoming null means "the
@@ -140,6 +142,7 @@ const TRUTHY_GUARDED_FIELDS = new Set([
     'dioramaTuning',
     'monetTuning',
     'pendoloTuning',
+    'sonnetTuning',
     'monetBackgroundTuning',
     'nomandBackgroundTuning',
     'latentBackgroundTuning',
@@ -159,6 +162,7 @@ const BUNDLED_TUNING_FIELDS = new Set([
     'dioramaTuning',
     'monetTuning',
     'pendoloTuning',
+    'sonnetTuning',
 ]);
 
 // Structural compare over the plain JSON the codec emits — enough for tunings and font arrays, and

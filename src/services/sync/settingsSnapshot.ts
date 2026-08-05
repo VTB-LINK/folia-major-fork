@@ -7,6 +7,7 @@ import { applyVisualizerTuningsToSettings, collectVisualizerTunings } from '../.
 // Maps the settings store to the syncable visual settings JSON document.
 
 export const buildSyncedVisualSettings = (state: SettingsUiState): SyncedVisualSettings => ({
+    followSystemTheme: state.followSystemTheme,
     visualizerMode: state.visualizerMode,
     randomVisualizerModePerSong: state.randomVisualizerModePerSong,
     visualizerBackgroundMode: state.visualizerBackgroundMode,
@@ -39,6 +40,7 @@ export const buildSyncedVisualSettings = (state: SettingsUiState): SyncedVisualS
     latentBackgroundTuning: state.latentBackgroundTuning,
     monetTuning: state.monetTuning,
     pendoloTuning: state.pendoloTuning,
+    sonnetTuning: state.sonnetTuning,
     urlBackgroundList: state.urlBackgroundList,
     urlBackgroundSelectedId: state.urlBackgroundSelectedId,
     homeLayoutStyle: state.homeLayoutStyle,
@@ -62,6 +64,7 @@ export const applySyncedVisualSettings = (
     state: SettingsUiState,
     settings: SyncedVisualSettings,
 ) => {
+    if (settings.followSystemTheme !== undefined) state.setFollowSystemTheme(Boolean(settings.followSystemTheme));
     if (settings.visualizerMode !== undefined) state.handleSetVisualizerMode(settings.visualizerMode);
     if (settings.randomVisualizerModePerSong !== undefined) state.handleToggleRandomVisualizerModePerSong(Boolean(settings.randomVisualizerModePerSong));
     if (settings.visualizerBackgroundMode === null) {
@@ -100,6 +103,7 @@ export const applySyncedVisualSettings = (
     if (settings.latentBackgroundTuning !== undefined) state.handleSetLatentBackgroundTuning(settings.latentBackgroundTuning as Parameters<SettingsUiState['handleSetLatentBackgroundTuning']>[0]);
     if (settings.visualizerTunings === undefined && settings.monetTuning !== undefined) state.handleSetMonetTuning(settings.monetTuning as Parameters<SettingsUiState['handleSetMonetTuning']>[0]);
     if (settings.visualizerTunings === undefined && settings.pendoloTuning !== undefined) state.handleSetPendoloTuning(settings.pendoloTuning as Parameters<SettingsUiState['handleSetPendoloTuning']>[0]);
+    if (settings.visualizerTunings === undefined && settings.sonnetTuning !== undefined) state.handleSetSonnetTuning(settings.sonnetTuning as Parameters<SettingsUiState['handleSetSonnetTuning']>[0]);
     if (settings.urlBackgroundList !== undefined) state.handleSetUrlBackgroundList(settings.urlBackgroundList as Parameters<SettingsUiState['handleSetUrlBackgroundList']>[0]);
     if (settings.urlBackgroundSelectedId !== undefined) state.handleSetUrlBackgroundSelectedId(settings.urlBackgroundSelectedId);
     if (settings.homeLayoutStyle !== undefined) state.handleSetHomeLayoutStyle(settings.homeLayoutStyle);

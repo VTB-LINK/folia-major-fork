@@ -1076,6 +1076,17 @@ export default {
     "noDescription": "Tidak ada deskripsi tersedia",
   },
   "releaseNotes": {
+    "v0_6_12": {
+      "intro": "Berikut fitur dan peningkatan baru pada versi 0.6.13.",
+      "sonnetLayout": {
+        "title": "Mesin Tata Letak Sonnet Baru",
+        "description": "Mesin tata letak visualizer Sonnet telah dibangun ulang untuk tipografi lirik yang lebih indah, seimbang, dan stabil."
+      },
+      "followSystemTheme": {
+        "title": "Ikuti Tampilan Sistem",
+        "description": "Aktifkan opsi ini di Pengaturan untuk beralih otomatis antara tema terang dan gelap mengikuti sistem."
+      }
+    },
     "v0_6_8": {
       "intro": "Berikut fitur dan peningkatan baru pada versi 0.6.8.",
       "navidromeRecent": {

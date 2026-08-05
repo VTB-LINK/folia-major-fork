@@ -43,6 +43,7 @@ const isVisualizerBackgroundMode = (value: unknown): value is NonNullable<Synced
 const parseSyncedVisualSettings = (value: Record<string, unknown>): SyncedVisualSettings => {
     const settings: SyncedVisualSettings = {};
 
+    if (typeof value.followSystemTheme === 'boolean') settings.followSystemTheme = value.followSystemTheme;
     if (typeof value.visualizerMode === 'string' && value.visualizerMode.trim()) settings.visualizerMode = value.visualizerMode;
     if (value.visualizerBackgroundMode === null) settings.visualizerBackgroundMode = null;
     else if (isVisualizerBackgroundMode(value.visualizerBackgroundMode)) settings.visualizerBackgroundMode = value.visualizerBackgroundMode;
@@ -79,6 +80,8 @@ const parseSyncedVisualSettings = (value: Record<string, unknown>): SyncedVisual
     if (value.nomandBackgroundTuning !== undefined) settings.nomandBackgroundTuning = value.nomandBackgroundTuning;
     if (value.latentBackgroundTuning !== undefined) settings.latentBackgroundTuning = value.latentBackgroundTuning;
     if (value.monetTuning !== undefined) settings.monetTuning = value.monetTuning;
+    if (value.pendoloTuning !== undefined) settings.pendoloTuning = value.pendoloTuning;
+    if (value.sonnetTuning !== undefined) settings.sonnetTuning = value.sonnetTuning;
     if (Array.isArray(value.urlBackgroundList)) settings.urlBackgroundList = value.urlBackgroundList;
     if (value.urlBackgroundSelectedId === null) settings.urlBackgroundSelectedId = null;
     else if (typeof value.urlBackgroundSelectedId === 'string') settings.urlBackgroundSelectedId = value.urlBackgroundSelectedId;
