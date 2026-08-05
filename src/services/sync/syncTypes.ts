@@ -25,6 +25,7 @@ export type SyncRuntimeStatus = {
 };
 
 export type SyncedVisualSettings = {
+    followSystemTheme?: boolean;
     visualizerMode?: VisualizerMode;
     randomVisualizerModePerSong?: boolean;
     visualizerBackgroundMode?: VisualizerBackgroundMode | null;
@@ -57,6 +58,7 @@ export type SyncedVisualSettings = {
     latentBackgroundTuning?: unknown;
     monetTuning?: unknown;
     pendoloTuning?: unknown;
+    sonnetTuning?: unknown;
     urlBackgroundList?: unknown[];
     urlBackgroundSelectedId?: string | null;
     homeLayoutStyle?: 'carousel' | 'grid';
