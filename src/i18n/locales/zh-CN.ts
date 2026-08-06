@@ -34,6 +34,8 @@ export default {
     "minimizeToTaskbar": "最小化将保留在任务栏",
     "voiceInputPauseOn": "语音输入时暂停已开启",
     "voiceInputPauseOff": "语音输入时暂停已关闭",
+    "preventDisplaySleepOn": "播放时将阻止显示器休眠",
+    "preventDisplaySleepOff": "已关闭播放时阻止休眠",
     "taskbarHidden": "主窗口任务栏图标已隐藏",
     "taskbarRestored": "主窗口任务栏图标已恢复",
     "openPlayerOnLaunch": "启动后将直接进入播放页",
@@ -238,6 +240,7 @@ export default {
       "sync-now": { "title": "立即同步", "description": "同步 AI 主题" },
       "settings-desktop": { "title": "桌面端设置", "description": "打开桌面应用设置" },
       "desktop-toggle-voice-input-pause": { "title": "语音输入时暂停", "description": "切换语音输入时自动暂停播放" },
+      "desktop-toggle-prevent-display-sleep": { "title": "播放时阻止休眠", "description": "播放音乐时保持显示器唤醒" },
       "settings-lab": { "title": "实验设置", "description": "打开实验功能设置" },
       "visualizer-toggle-random-per-song": { "title": "每首歌随机歌词动画", "description": "歌曲切换时随机使用一种歌词动画模式" },
       "settings-visualizer": { "title": "可视化设置", "description": "打开歌词动画实验台" },
@@ -698,6 +701,8 @@ export default {
     "voiceInputSettings": "语音输入",
     "voiceInputPause": "语音输入时暂停播放",
     "voiceInputPauseDesc": "检测到系统语音输入（如 Win+H 语音键入、输入法语音转文字）或其他应用占用麦克风时自动暂停播放，结束后自动恢复。仅 Windows 桌面端生效。",
+    "preventDisplaySleepDuringPlayback": "播放时阻止休眠",
+    "preventDisplaySleepDuringPlaybackDesc": "仅桌面端生效。音乐播放期间保持显示器唤醒，暂停或停止播放后恢复系统原有的休眠行为。",
     "showOpenPanelCloseButton": "显示信息卡片关闭按钮",
     "showOpenPanelCloseButtonDesc": "歌曲信息卡片打开后，显示右下角浮动关闭按钮。",
     "showOpenPanelCloseButtonDescSub": "移动端可能仍然更需要这个按钮。",
@@ -921,6 +926,13 @@ export default {
     "sonnetShowGiantDecorativeText": "巨型装饰镂空文字",
     "sonnetShowBackgroundDecor": "背景装饰",
     "sonnetEnableTransitions": "场景转场",
+    "sonnetPostProcessSection": "后处理",
+    "sonnetPostProcessEnabled": "整体后处理滤镜",
+    "sonnetPostProcessGrain": "胶片颗粒",
+    "sonnetPostProcessContrast": "对比度增强",
+    "sonnetPostProcessRgbShift": "RGB 色差",
+    "sonnetPostProcessHalftone": "半调网点",
+    "sonnetPostProcessVignette": "暗角",
     "sonnetToggleOn": "开启",
     "sonnetToggleOff": "关闭",
     "sonnetPerformanceWarningTitle": "商籁性能警告",
@@ -1267,7 +1279,7 @@ export default {
   },
   "releaseNotes": {
     "v0_6_12": {
-      "intro": "以下是 0.6.13 的新功能与改进",
+      "intro": "以下是 0.6.14 的新功能与改进",
       "sonnetLayout": {
         "title": "商籁排版引擎重构",
         "description": "重构商籁 / Sonnet 模式的排版引擎，带来更加美观、合理且稳定的文字布局效果。"
