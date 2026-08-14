@@ -28,6 +28,11 @@ import {
 import { clearSessionValues, putSessionValue, readSession } from './repositories/sessionRepository';
 import { readThemeRegistryEntries, writeThemeRegistryEntries } from './repositories/themeRegistryRepository';
 import { clearCoverAssets, getCoverAssetUsage } from './binaryAssetStore';
+import { clearLocalCoverBinaries } from './localCoverBinaryStore';
+import {
+  cancelLocalCoverAssetMigration,
+  resetLocalCoverAssetRuntime,
+} from './localCoverAssetService';
 
 // src/services/db.ts
 // Keeps the historical storage API stable while delegating every IndexedDB operation to Dexie repositories.
@@ -178,21 +183,13 @@ export const clearCacheByCategory = async (category: CacheCategory): Promise<voi
 };
 
 export const saveLocalSong = async (song: LocalSong): Promise<void> => {
-  try {
-    await ensureLocalLibraryInitialized();
-    await assignImportedSongs([song]);
-  } catch (error) {
-    console.error('Failed to save local song', error);
-  }
+  await ensureLocalLibraryInitialized();
+  await assignImportedSongs([song]);
 };
 
 export const saveLocalSongs = async (songs: LocalSong[]): Promise<void> => {
-  try {
-    await ensureLocalLibraryInitialized();
-    await assignImportedSongs(songs);
-  } catch (error) {
-    console.error('Failed to save local songs', error);
-  }
+  await ensureLocalLibraryInitialized();
+  await assignImportedSongs(songs);
 };
 
 export const getLocalSongs = async (): Promise<LocalSong[]> => {
@@ -225,6 +222,9 @@ export const clearAllData = async (): Promise<void> => {
   try {
     if (hasElectronAudioCacheBridge()) await window.electron!.clearAudioCache();
     await clearCoverAssets();
+    await cancelLocalCoverAssetMigration();
+    await clearLocalCoverBinaries();
+    resetLocalCoverAssetRuntime();
     await appDatabase.delete();
     await appDatabase.open();
   } catch (error) {

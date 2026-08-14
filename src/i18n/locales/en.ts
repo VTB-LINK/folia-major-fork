@@ -141,6 +141,11 @@ export default {
     "likeFailed": "Failed to like song",
     "unliked": "Removed from Liked",
     "playlistUpdated": "Playlist updated",
+    "providerLikeUnavailable": "{{provider}} does not support liking songs.",
+    "providerPlaylistMutationUnavailable": "{{provider}} does not support adding songs to playlists.",
+    "providerRecommendationsUnavailable": "{{provider}} does not provide recommendation content.",
+    "providerUserAlbumsUnavailable": "{{provider}} does not provide the user's album library.",
+    "providerLibraryUnavailable": "{{provider}} does not provide a playlist library.",
     "songUnavailable": "Song has been taken down",
     "songUnavailableSkipping": "Song has been taken down, skipping",
     "songUnavailablePrompt": "Song has been taken down. Auto-skipping in {{seconds}}s",
@@ -231,10 +236,12 @@ export default {
       "playback-replaygain-off": { "title": "Disable ReplayGain", "description": "Play audio without ReplayGain adjustment" },
       "playback-replaygain-track": { "title": "ReplayGain: Track mode", "description": "Apply per-track ReplayGain adjustment" },
       "playback-replaygain-album": { "title": "ReplayGain: Album mode", "description": "Apply album ReplayGain adjustment" },
+      "playback-equalizer": { "title": "Audio equalizer", "description": "Open the ten-band audio equalizer" },
       "settings-local-lyrics-priority": { "title": "Local song lyrics priority", "description": "Choose whether local songs prefer local or online lyrics" },
       "settings-integration": { "title": "Integration settings", "description": "Open Stage, Now Playing, and Navidrome settings" },
       "settings-discord-presence": { "title": "Discord playback status", "description": "Open Discord Rich Presence settings" },
       "settings-obs-browser-source": { "title": "OBS browser source", "description": "Open OBS browser source settings" },
+      "desktop-toggle-lyric-api": { "title": "Lyrics API", "description": "Toggle the local unauthenticated lyrics endpoint" },
       "settings-storage": { "title": "Storage settings", "description": "Open cache and storage settings" },
       "settings-r2-sync": { "title": "Sync server settings", "description": "Open sync server settings" },
       "sync-now": { "title": "Sync now", "description": "Sync AI themes" },
@@ -357,6 +364,22 @@ export default {
     "pause": "Pause",
     "close": "Close",
     "volume": "Volume",
+    "openEqualizer": "Open audio equalizer",
+    "equalizerTitle": "10-band equalizer",
+    "equalizerDescription": "Shape playback from deep bass to high treble. Changes are saved automatically.",
+    "equalizerEnabled": "Equalizer on",
+    "equalizerDisabled": "Equalizer off",
+    "equalizerGain": "Band gain",
+    "equalizerReset": "Reset equalizer",
+    "equalizerPreset": {
+      "flat": "Level",
+      "lofi": "Lo-Fi",
+      "radio": "Radio",
+      "vinyl": "Vinyl",
+      "vocal": "Vocal",
+      "bass": "Bass boost",
+      "custom": "Custom"
+    },
     "cadenze": {
       "fontScale": "Font Scale",
       "widthRatio": "Line Width",
@@ -422,6 +445,14 @@ export default {
     "loginNote": "Open Netease Music App > Discover > Scan QR",
     "loginTitleKugou": "Scan with KuGou Music",
     "loginNoteKugou": "Open KuGou Music and scan this QR code",
+    "loginTitleQq": "Scan to sign in to QQ Music",
+    "loginNoteQq": "Scan this QR code with the matching app",
+    "qqLoginMethodTitle": "Choose sign-in method",
+    "qqLoginMethodHint": "Pick the method matching the account your QQ Music app is bound to",
+    "qqLoginMethodPending": "Pick a sign-in method to generate the QR code",
+    "qqLoginMethodCurrent": "Current method: {{method}}",
+    "qqLoginMethodMobile": "QQ",
+    "qqLoginMethodWechat": "WeChat",
     "switchOnlineProvider": "Switch online music provider",
     "confirmOnlineProviderSwitch": "Switch to {{provider}}? Current online playback and queue will be cleared.",
     "onlineProvider": "Online music provider",
@@ -446,6 +477,32 @@ export default {
     "searchNavidrome": "Search navidrome",
     "gridSearchPlaceholder": "Filter songs...",
     "gridSearchNoResults": "No matching songs",
+    "gridBatchSelectionSummary": {
+      "folders": "{{selected}}/{{total}} folders · {{tracks}} tracks",
+      "albums": "{{selected}}/{{total}} albums · {{tracks}} tracks",
+      "artists": "{{selected}}/{{total}} artists · {{tracks}} tracks"
+    },
+    "gridBatchTrackCount": "{{count}} tracks",
+    "gridFolderSelectAll": "Select all",
+    "gridFolderSelectNone": "Select none",
+    "gridFolderTreeToggle": "Expand or collapse folder",
+    "gridFolderTrackCount": "{{count}} tracks in subtree",
+    "gridFolderDirectTrackCount": "{{count}} tracks in this folder",
+    "gridFolderTreeDirectSelection": "This folder only · {{count}} tracks",
+    "gridFolderTreeSelectionCount": "{{selected}}/{{total}} filtered folders selected",
+    "gridFolderTreeEmpty": "No imported directory snapshot is available.",
+    "gridFolderExpandTreePanel": "Expand",
+    "gridFolderCollapseTreePanel": "Collapse",
+    "gridFolderRescanRoot": "Rescan imported root",
+    "gridFolderRemoveRoot": "Remove imported root",
+    "gridFolderAddToQueue": "Add to queue",
+    "gridFolderRemoveSelected": "Remove from library",
+    "gridFolderCreatePlaylistDescription": "Create a playlist with {{count}} selected local tracks.",
+    "gridFolderPlaylistNamePlaceholder": "Playlist name",
+    "gridFolderRemoveSelectedTitle": "Remove selected tracks?",
+    "gridFolderRemoveSelectedDescription": "This removes {{count}} tracks from Folia and its playlists. Files on disk will not be deleted.",
+    "gridFolderRemoveRootTitle": "Remove imported root?",
+    "gridFolderRemoveRootDescription": "Remove {{path}} and all its tracks from Folia? Files on disk will not be deleted.",
     "login": "Login",
     "welcomeBack": "Welcome Back",
     "guestTitle": "Try searching a few songs first",
@@ -561,6 +618,16 @@ export default {
     "replayGainModeDesc": "Normalize playback loudness using track or album ReplayGain metadata when available.",
     "integrationSettings": "Integration settings",
     "integrationSettingsDesc": "Connections for external apps and services.",
+    "lyricApi": "Lyrics API",
+    "enableLyricApi": "Enable Lyrics API",
+    "lyricApiDesc": "Expose a fixed-port local endpoint without authentication so external programs can read sanitized lyrics for the current song. Listens on 127.0.0.1 only.",
+    "lyricApiAddress": "Endpoint",
+    "copyLyricApiAddress": "Copy endpoint",
+    "lyricApiRunning": "Running",
+    "lyricApiUnavailable": "Unavailable",
+    "lyricApiEnabledStatus": "Lyrics API enabled at http://127.0.0.1:32109/v1/lyric",
+    "lyricApiDisabledStatus": "Lyrics API disabled",
+    "lyricApiEnableFailed": "Failed to start the Lyrics API",
     "storageSettings": "Storage settings",
     "storageSettingsDesc": "Cache usage, cleanup, media cache, and cache directory.",
     "storageSettingsPanelDesc": "Cache usage, cleanup, and media cache behavior.",
@@ -928,6 +995,8 @@ export default {
     "sonnetPostProcessGrain": "Film grain",
     "sonnetPostProcessContrast": "Contrast boost",
     "sonnetPostProcessRgbShift": "RGB shift",
+    "sonnetPostProcessLensDistortion": "Lens distortion",
+    "sonnetPostProcessLensDispersion": "Lens dispersion",
     "sonnetPostProcessHalftone": "Halftone screen",
     "sonnetPostProcessVignette": "Vignette",
     "sonnetToggleOn": "On",
@@ -1277,6 +1346,74 @@ export default {
     "noDescription": "No description available",
   },
   "releaseNotes": {
+    "v0_6_18": {
+      "intro": "Here are the new features and improvements in version 0.6.18.",
+      "m3uPlaylists": {
+        "title": "Portable M3U8 Playlists",
+        "description": "Import .m3u8 files into your local library and export Folia playlists as UTF-8 M3U8 files with portable paths. Unmatched or ambiguous paths are reported instead of being added silently."
+      },
+      "gridMapBatchTools": {
+        "title": "Search and Manage Local Collections",
+        "description": "GridMap search now supports multiple terms across names, paths, and metadata. Select folders, albums, or artists in batches to play, queue, create playlists, or remove library entries; folders can also be rescanned without touching files on disk."
+      },
+      "foliaIgnore": {
+        "title": "Flexible .foliaignore Rules",
+        "description": "Add .foliaignore files to imported roots or subfolders to exclude temporary files, cache directories, and unwanted audio with familiar gitignore-style patterns. Changes apply on the next re-import."
+      },
+      "incrementalLocalScans": {
+        "title": "Faster Incremental Library Scans",
+        "description": "Re-imports now reuse unchanged files, detect additions and removals, and load metadata in the background, making large local libraries quicker to refresh."
+      },
+      "localCoverAssets": {
+        "title": "More Efficient Local Artwork",
+        "description": "Local covers are deduplicated into persistent assets and served in size-aware thumbnails, reducing repeated storage and unnecessary full-resolution image work across the library."
+      }
+    },
+    "v0_6_17": {
+      "intro": "Here are the new features and improvements in version 0.6.17.",
+      "sonnetSceneVariants": {
+        "title": "More Sonnet Scene Variants",
+        "description": "Sonnet now draws from 100 background compositions, with new celestial, marine, music, craft, and kinetic themes plus more frame and geometry variations."
+      },
+      "sonnetDrawingMotion": {
+        "title": "Layered Drawing Motion",
+        "description": "Sonnet's lines, fills, and decorative elements now reveal in staggered drawing sequences for richer, more organic scene transitions."
+      },
+      "equalizerDaylight": {
+        "title": "Clearer Daylight Equalizer",
+        "description": "Improved contrast, surfaces, controls, and accent colors make the audio equalizer easier to read and operate in the light theme."
+      }
+    },
+    "v0_6_16": {
+      "intro": "Here are the new features and improvements in version 0.6.16.",
+      "qqMusicProvider": {
+        "title": "Initial QQ Music Integration",
+        "description": "Basic account sign-in, online search, and playback are now available. Feature support is still limited and will be expanded in future releases."
+      },
+      "audioEqualizer": {
+        "title": "Audio Equalizer",
+        "description": "Adjust and save equalizer settings from the playback controls for sound better suited to your device."
+      },
+      "lyricApi": {
+        "title": "Desktop Lyrics API",
+        "description": "A new local API lets external apps read the current track and synchronized lyrics."
+      },
+      "localSongCovers": {
+        "title": "Local Track Covers",
+        "description": "You can now import, display, and persist custom artwork for individual local tracks."
+      }
+    },
+    "v0_6_15": {
+      "intro": "Here are the new features and improvements in version 0.6.15.",
+      "sonnetLensEffects": {
+        "title": "Sonnet Lens Effects",
+        "description": "New lens distortion and chromatic dispersion controls give the Sonnet visualizer a richer optical look."
+      },
+      "sonnetPostProcess": {
+        "title": "Refined Sonnet Post-processing",
+        "description": "Improved defaults, stable transitions, and cleaner RGB Shift rendering keep Sonnet's effects expressive without compromising lyric clarity."
+      }
+    },
     "v0_6_12": {
       "intro": "Here are the new features and improvements in version 0.6.14.",
       "sonnetLayout": {
@@ -1368,6 +1505,8 @@ export default {
     "sortDescending": "Descending",
     "importFolder": "Import Folder",
     "importing": "Importing...",
+    "importPlaylist": "Import Playlist",
+    "importingPlaylist": "Importing playlist...",
     "noLocalMusic": "No local music imported yet",
     "noFoldersFound": "No folders found",
     "noAlbumsFound": "No albums found",
@@ -1391,6 +1530,7 @@ export default {
     "deleteFolderCount": "This will remove a total of {{count}} song(s) from your library, including nested subfolders.",
     "deleteFolderNote": "Note: This will only remove songs from your library. Your files on disk will not be affected.",
     "importNotSupported": "Folder import not supported in this browser or cancelled",
+    "insecureHttpDisabled": "Local library is disabled on remote HTTP. Use HTTPS, localhost, or the Electron app.",
     "resyncFailed": "Failed to resync folder. Please try again.",
     "deleteFailed": "Failed to delete folder. Please try again.",
     "matchStatus": "Match Status",
@@ -1454,6 +1594,12 @@ export default {
     "editPlaylist": "Edit Playlist",
     "finishEditing": "Finish Editing",
     "deletePlaylist": "Delete Playlist",
+    "exportPlaylist": "Export M3U8",
+    "playlistImportSuccess": "Imported “{{name}}” with {{count}} track(s).",
+    "playlistImportPartial": "Imported {{count}} track(s) into “{{name}}”; {{skipped}} path(s) were missing or ambiguous.",
+    "playlistImportNoMatches": "No playlist paths matched the local songs currently imported into Folia.",
+    "playlistImportFailed": "Playlist import failed. Make sure the file is a valid M3U or M3U8 playlist.",
+    "playlistExportSuccess": "Exported “{{name}}”.",
     "entityInfo": "{{kind}} Info",
     "entityDisplayName": "Display Name",
     "mergeEntity": "Merge {{kind}}",

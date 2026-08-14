@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Repeat, Repeat1, RepeatOff, Heart, Sparkles, Sparkle, ArrowUpDown, Check, Copy, RefreshCw, Cone, Layers, Sun, Moon, Settings, Volume2, Volume1, VolumeX } from 'lucide-react';
+import { Repeat, Repeat1, RepeatOff, Heart, Sparkles, Sparkle, ArrowUpDown, Check, Copy, RefreshCw, Cone, Layers, Sun, Moon, Settings, SlidersHorizontal, Volume2, Volume1, VolumeX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { type LatentBackgroundDisplayMode, Theme, ThemeMode, type VisualizerBackgroundMode, VisualizerMode } from '../../types';
 import type { ThemeSourceModel } from '../../hooks/themeControllerState';
@@ -16,6 +16,7 @@ import { ObsCopyCssButton } from '../shared/ObsCopyCssButton';
 import { buildCurrentObsUrl } from '../../utils/currentObsUrl';
 import { resolveWebObsTarget, selectWebObsSource } from '../../utils/webObsTarget';
 import { resolveObsCopyHintKey } from '../../utils/visualSettingsConfig';
+import AudioEqualizerDialog from './AudioEqualizerDialog';
 
 // Controls tab composes compact visualizer and background pickers without changing player state flow.
 
@@ -24,6 +25,8 @@ interface ControlsTabProps {
     onToggleLoop: () => void;
     onLike: () => void;
     isLiked: boolean;
+    likeDisabled?: boolean;
+    likeDisabledReason?: string;
     onGenerateAITheme: () => void;
     isGeneratingTheme: boolean;
     canGenerateAITheme: boolean;
@@ -84,6 +87,8 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
     onToggleLoop,
     onLike,
     isLiked,
+    likeDisabled = false,
+    likeDisabledReason,
     onGenerateAITheme,
     isGeneratingTheme,
     canGenerateAITheme,
@@ -164,6 +169,8 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
     const setNomandBackgroundTuning = useSettingsUiStore(state => state.handleSetNomandBackgroundTuning);
     const latentBackgroundTuning = useSettingsUiStore(state => state.latentBackgroundTuning);
     const setLatentBackgroundTuning = useSettingsUiStore(state => state.handleSetLatentBackgroundTuning);
+    const audioEqualizerSettings = useSettingsUiStore(state => state.audioEqualizerSettings);
+    const openAudioEqualizer = useSettingsUiStore(state => state.openAudioEqualizer);
     const [sliderVolume, setSliderVolume] = useState(isMuted ? 0 : volume);
     const [themeSyncState, setThemeSyncState] = useState<'idle' | 'syncing' | 'complete'>('idle');
     const isDraggingRef = useRef(false);
@@ -300,7 +307,10 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
 
                     <button
                         onClick={onLike}
-                        className={`h-12 rounded-xl flex items-center justify-center transition-colors ${isLiked ? 'bg-red-500/20 text-red-500' : buttonBg}`}
+                        disabled={likeDisabled}
+                        title={likeDisabledReason || (isLiked ? t('player.unlike') : t('player.like'))}
+                        aria-label={likeDisabledReason || (isLiked ? t('player.unlike') : t('player.like'))}
+                        className={`h-12 rounded-xl flex items-center justify-center transition-colors ${isLiked ? 'bg-red-500/20 text-red-500' : buttonBg} ${likeDisabled ? 'opacity-35 cursor-not-allowed' : ''}`}
                     >
                         <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
                     </button>
@@ -325,9 +335,21 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                 <div className="pt-2 border-t border-white/5 space-y-4">
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <label className="text-[10px] font-bold opacity-40 uppercase tracking-widest">
-                                {t('ui.volume') || 'Volume'}
-                            </label>
+                            <div className="flex items-center gap-0.5">
+                                <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">
+                                    {t('ui.volume') || 'Volume'}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={openAudioEqualizer}
+                                    className={`rounded-md p-1 transition-opacity hover:opacity-100 ${audioEqualizerSettings.enabled ? 'opacity-100' : 'opacity-40'}`}
+                                    style={audioEqualizerSettings.enabled ? { color: theme.accentColor } : undefined}
+                                    title={t('ui.openEqualizer')}
+                                    aria-label={t('ui.openEqualizer')}
+                                >
+                                    <SlidersHorizontal size={13} />
+                                </button>
+                            </div>
                             <span className="text-[10px] font-bold opacity-60">
                                 {Math.round(sliderVolume * 100)}%
                             </span>
@@ -653,6 +675,8 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                     </div>
                 )}
             </div>
+
+            <AudioEqualizerDialog isDaylight={isDaylight} theme={theme} />
 
         </motion.div>
     );

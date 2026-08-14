@@ -48,6 +48,7 @@ import { isNavidromeEnabled } from './services/navidromeService';
 import { useAppNavigation } from './hooks/useAppNavigation';
 import { useNeteaseLibrary } from './hooks/useNeteaseLibrary';
 import { useKugouLibrary } from './hooks/useKugouLibrary';
+import { useQqLibrary } from './hooks/useQqLibrary';
 import { useOnlineProviderPlatform } from './hooks/useOnlineProviderPlatform';
 import { useAppPreferences } from './hooks/useAppPreferences';
 import { useElectronPlaybackBridge } from './hooks/useElectronPlaybackBridge';
@@ -68,6 +69,7 @@ import { useLocalLibraryCatalog } from './hooks/useLocalLibraryCatalog';
 import { usePlaybackVisualizerBridge } from './hooks/usePlaybackVisualizerBridge';
 import { useRandomVisualizerMode } from './hooks/useRandomVisualizerMode';
 import { useObsBrowserSourcePublisher } from './hooks/useObsBrowserSourcePublisher';
+import { useLyricApiPublisher } from './hooks/useLyricApiPublisher';
 import { ObsBrowserSourceLyrics } from './components/obs/ObsBrowserSourceLyrics';
 import { useSessionRestoreController } from './hooks/useSessionRestoreController';
 import { useStagePlaybackController } from './hooks/useStagePlaybackController';
@@ -145,6 +147,7 @@ export default function App() {
         lastSeenGuideVersion,
         setLastSeenGuideVersion,
         setIsUserGuideModalOpen,
+        openAudioEqualizer,
     } = useSettingsUiStore(useShallow(state => ({
         closeSettings: state.closeSettings,
         isSettingsSubviewOpen: state.isSubSettingsViewOpen,
@@ -154,6 +157,7 @@ export default function App() {
         lastSeenGuideVersion: state.lastSeenGuideVersion,
         setLastSeenGuideVersion: state.setLastSeenGuideVersion,
         setIsUserGuideModalOpen: state.setIsUserGuideModalOpen,
+        openAudioEqualizer: state.openAudioEqualizer,
     })));
     const setThemeQuickEditorContext = useThemeQuickEditorStore(state => state.setContext);
     const openThemeQuickEditor = useThemeQuickEditorStore(state => state.openEditor);
@@ -866,15 +870,21 @@ export default function App() {
         logout: logoutKugouLibrary,
         checkLoginStatus: checkKugouLoginStatus,
     } = useKugouLibrary();
+    const {
+        refresh: refreshQqLibrary,
+        logout: logoutQqLibrary,
+    } = useQqLibrary();
     const [isProviderSyncing, setIsProviderSyncing] = useState(false);
     const onlineProviderRefreshers = useMemo(() => ({
         netease: refreshUserData,
         kugou: refreshKugouLibrary,
-    }), [refreshKugouLibrary, refreshUserData]);
+        qq: refreshQqLibrary,
+    }), [refreshKugouLibrary, refreshQqLibrary, refreshUserData]);
     const onlineProviderLogouts = useMemo(() => ({
         netease: handleLogout,
         kugou: logoutKugouLibrary,
-    }), [handleLogout, logoutKugouLibrary]);
+        qq: logoutQqLibrary,
+    }), [handleLogout, logoutKugouLibrary, logoutQqLibrary]);
     const [providerSwitchPending, setProviderSwitchPending] = useState<{
         nextProviderId: OnlineProviderId;
         resolve: (confirmed: boolean) => void;
@@ -1861,6 +1871,14 @@ export default function App() {
         cappellaCustomAvatarImages,
         monetPortraitImage,
     });
+    const {
+        lyricApiStatus,
+        setLyricApiEnabled,
+    } = useLyricApiPublisher({
+        isElectronWindow,
+        lyrics,
+        offset: lyricTimelineOffsetMs,
+    });
     const canGenerateAITheme = Boolean((lyrics?.lines.length ?? 0) > 0 || currentSong?.isPureMusic);
     const generateCurrentSongTheme = useCallback(() => {
         void generateAITheme(lyrics, currentSong);
@@ -1932,6 +1950,7 @@ export default function App() {
         togglePlay,
         toggleLoop,
         onReplayGainModeChange: handleChangeReplayGainMode,
+        openAudioEqualizer,
         handleNextTrack,
         handlePrevTrack,
         shuffleQueue,
@@ -2025,6 +2044,7 @@ export default function App() {
         toggleLoop,
         togglePlay,
         handleChangeReplayGainMode,
+        openAudioEqualizer,
         transparentPlayerBackground,
         toggleTransparentModeWithHandoff,
         toggleDaylightMode,
@@ -2830,6 +2850,8 @@ export default function App() {
         playerCapPlayers,
         obsBrowserSourceStatus,
         refreshObsBrowserSourceStatus,
+        lyricApiStatus,
+        setLyricApiEnabled,
         onAudioOutputDeviceChange: handleAudioOutputDeviceChange,
         replayGainMode,
         onReplayGainModeChange: handleChangeReplayGainMode,
@@ -2852,6 +2874,8 @@ export default function App() {
         playerCapPlayers,
         obsBrowserSourceStatus,
         refreshObsBrowserSourceStatus,
+        lyricApiStatus,
+        setLyricApiEnabled,
         replayGainMode,
         settingsModalState,
         stageSource,
@@ -2977,6 +3001,8 @@ export default function App() {
                     currentTime.set(e.currentTarget.currentTime);
                     setupAudioAnalyzer();
                     playbackAutoSkipCountRef.current = 0;
+                    // The source plays, so a later TTL refresh of the same media is legitimate again.
+                    lastAudioRecoverySourceRef.current = null;
                     setPlayerState(PlayerState.PLAYING);
                 }}
                 onPause={(e) => {

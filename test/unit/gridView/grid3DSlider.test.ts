@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+    getGrid3DCardGeometryKey,
+    getGrid3DWindowRange,
+    getGrid3DSliderDisplayName,
     getGrid3DSliderSecondaryText,
     getGrid3DSliderSummaryText,
     resolveGrid3DWheelInput,
@@ -9,6 +12,29 @@ import {
 // Verifies collection cards use real descriptions instead of a hard-coded symbol.
 
 describe('getGrid3DSliderSecondaryText', () => {
+    it('uses the full local folder path as secondary text', () => {
+        const folder = {
+            type: 'folder',
+            name: 'Astros/Classics/Cello',
+            description: '本地',
+        };
+
+        expect(getGrid3DSliderDisplayName(folder)).toBe('Astros/…/Cello');
+        expect(getGrid3DSliderSecondaryText(folder)).toBe('Astros/Classics/Cello');
+    });
+
+    it('keeps virtual folder labels unchanged', () => {
+        const folder = {
+            type: 'folder',
+            name: '全部歌曲',
+            description: '本地',
+            isVirtual: true,
+        };
+
+        expect(getGrid3DSliderDisplayName(folder)).toBe('全部歌曲');
+        expect(getGrid3DSliderSecondaryText(folder)).toBe('本地');
+    });
+
     it('prefers a playlist summary and falls back to its description', () => {
         expect(getGrid3DSliderSecondaryText({
             type: 'playlist',
@@ -37,6 +63,44 @@ describe('getGrid3DSliderSecondaryText', () => {
             description: '歌手',
             summary: '专辑简介',
         })).toBe('专辑简介');
+    });
+});
+
+describe('getGrid3DCardGeometryKey', () => {
+    // 12 cards, 1280px viewport, 218px covers, 531px edge padding.
+    const baseline = getGrid3DCardGeometryKey(12, 1280, 218, 531);
+
+    it('stays stable while only scrolling, so centers are measured once per layout', () => {
+        expect(getGrid3DCardGeometryKey(12, 1280, 218, 531)).toBe(baseline);
+    });
+
+    it('changes when a breakpoint resizes the covers without changing the card count', () => {
+        // The floating player lowers the isLargeDesktop height threshold, so coverSize flips 312 -> 218
+        // at an unchanged viewport width. Keying on the count alone left the cached centers stale.
+        expect(getGrid3DCardGeometryKey(12, 1280, 312, 484)).not.toBe(baseline);
+    });
+
+    it('changes when edge padding shifts every card without resizing them', () => {
+        expect(getGrid3DCardGeometryKey(12, 1280, 218, 480)).not.toBe(baseline);
+    });
+
+    it('changes when the viewport is resized', () => {
+        expect(getGrid3DCardGeometryKey(12, 960, 218, 531)).not.toBe(baseline);
+    });
+
+    it('changes when cards are appended by progressive loading', () => {
+        expect(getGrid3DCardGeometryKey(42, 1280, 218, 531)).not.toBe(baseline);
+    });
+});
+
+describe('getGrid3DWindowRange', () => {
+    it('keeps a long slider bounded around the focused card', () => {
+        expect(getGrid3DWindowRange(5_000, 10_000)).toEqual({ start: 4_982, end: 5_019 });
+    });
+
+    it('clamps the window at both list edges', () => {
+        expect(getGrid3DWindowRange(0, 100)).toEqual({ start: 0, end: 19 });
+        expect(getGrid3DWindowRange(99, 100)).toEqual({ start: 81, end: 100 });
     });
 });
 

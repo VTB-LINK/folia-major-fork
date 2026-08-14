@@ -8,6 +8,7 @@ import RemoteControlApp from './components/remote/RemoteControlApp';
 import ObsBrowserSourceApp from './components/obs/ObsBrowserSourceApp';
 import ObsNowPlayingSourceApp from './components/obs/ObsNowPlayingSourceApp';
 import ObsPlayerCapSourceApp from './components/obs/ObsPlayerCapSourceApp';
+import { initializeLocalCoverRuntime } from './services/localCoverRuntime';
 
 // src/bootstrap.tsx
 // Mounts the React app after index.tsx installs runtime-level browser shims.
@@ -38,7 +39,8 @@ registerSW({
   immediate: true,
   onNeedReload: isObsBrowserSource ? () => {} : undefined,
 });
-root.render(
+
+const renderApp = () => root.render(
   <React.StrictMode>
     {isNowPlayingObsSource
       ? <ObsNowPlayingSourceApp />
@@ -51,3 +53,5 @@ root.render(
             : <App />}
   </React.StrictMode>
 );
+
+void initializeLocalCoverRuntime().finally(renderApp);

@@ -141,6 +141,11 @@ export default {
     "likeFailed": "添加失败",
     "unliked": "已取消喜欢",
     "playlistUpdated": "歌单已更新",
+    "providerLikeUnavailable": "{{provider}} 暂不支持喜欢歌曲。",
+    "providerPlaylistMutationUnavailable": "{{provider}} 暂不支持将歌曲添加到歌单。",
+    "providerRecommendationsUnavailable": "{{provider}} 暂未提供推荐内容。",
+    "providerUserAlbumsUnavailable": "{{provider}} 暂未提供用户专辑库。",
+    "providerLibraryUnavailable": "{{provider}} 暂未提供歌单库。",
     "songUnavailable": "歌曲已下架",
     "songUnavailableSkipping": "歌曲已下架，正在跳过",
     "songUnavailablePrompt": "歌曲已下架，{{seconds}} 秒后自动跳过",
@@ -231,10 +236,12 @@ export default {
       "playback-replaygain-off": { "title": "关闭 ReplayGain", "description": "播放音频时不应用 ReplayGain 调整" },
       "playback-replaygain-track": { "title": "ReplayGain：单曲模式", "description": "按每首歌曲的 ReplayGain 数据调整响度" },
       "playback-replaygain-album": { "title": "ReplayGain：专辑模式", "description": "按专辑 ReplayGain 数据调整响度" },
+      "playback-equalizer": { "title": "音频均衡器", "description": "打开十段音频均衡器" },
       "settings-local-lyrics-priority": { "title": "本地歌曲歌词优先级", "description": "选择本地歌曲优先使用本地或在线歌词" },
       "settings-integration": { "title": "集成设置", "description": "打开 Stage、Now Playing 和 Navidrome 设置" },
       "settings-discord-presence": { "title": "Discord 播放状态", "description": "打开 Discord Rich Presence 设置" },
       "settings-obs-browser-source": { "title": "OBS 浏览器源", "description": "打开 OBS 浏览器源设置" },
+      "desktop-toggle-lyric-api": { "title": "歌词接口", "description": "切换本地免鉴权歌词接口" },
       "settings-storage": { "title": "存储设置", "description": "打开缓存和存储设置" },
       "settings-r2-sync": { "title": "同步服务设置", "description": "打开同步服务设置" },
       "sync-now": { "title": "立即同步", "description": "同步 AI 主题" },
@@ -358,6 +365,22 @@ export default {
     "pause": "暂停",
     "close": "关闭",
     "volume": "音量",
+    "openEqualizer": "打开音频均衡器",
+    "equalizerTitle": "10 段音频均衡器",
+    "equalizerDescription": "从低频到高频调节播放声音，修改会自动保存。",
+    "equalizerEnabled": "均衡器已开启",
+    "equalizerDisabled": "均衡器已关闭",
+    "equalizerGain": "频段增益",
+    "equalizerReset": "重置均衡器",
+    "equalizerPreset": {
+      "flat": "水平",
+      "lofi": "Lo-Fi",
+      "radio": "收音机",
+      "vinyl": "黑胶",
+      "vocal": "人声",
+      "bass": "低音增强",
+      "custom": "自定义"
+    },
     "cadenze": {
       "fontScale": "字体比例",
       "widthRatio": "行宽",
@@ -423,6 +446,14 @@ export default {
     "loginNote": "打开网易云音乐APP > 发现 > 扫一扫",
     "loginTitleKugou": "使用酷狗音乐APP扫码",
     "loginNoteKugou": "打开酷狗音乐APP扫描二维码",
+    "loginTitleQq": "扫码登录QQ音乐",
+    "loginNoteQq": "请使用对应 App 扫码登录",
+    "qqLoginMethodTitle": "选择登录方式",
+    "qqLoginMethodHint": "请根据 QQ 音乐 App 绑定的账号类型选择登录方式\nQQ 绑定账号请选择 QQ，微信绑定账号请选择微信",
+    "qqLoginMethodPending": "选择登录方式后生成二维码",
+    "qqLoginMethodCurrent": "当前登录方式：{{method}}",
+    "qqLoginMethodMobile": "QQ",
+    "qqLoginMethodWechat": "微信",
     "switchOnlineProvider": "切换在线音乐平台",
     "confirmOnlineProviderSwitch": "切换到 {{provider}}？当前在线播放与队列将被清空。",
     "onlineProvider": "在线音乐平台",
@@ -447,6 +478,32 @@ export default {
     "searchNavidrome": "搜索navidrome...",
     "gridSearchPlaceholder": "过滤歌曲...",
     "gridSearchNoResults": "没有匹配的歌曲",
+    "gridBatchSelectionSummary": {
+      "folders": "已选 {{selected}}/{{total}} 个文件夹 · {{tracks}} 首歌曲",
+      "albums": "已选 {{selected}}/{{total}} 张专辑 · {{tracks}} 首歌曲",
+      "artists": "已选 {{selected}}/{{total}} 位艺术家 · {{tracks}} 首歌曲"
+    },
+    "gridBatchTrackCount": "{{count}} 首歌曲",
+    "gridFolderSelectAll": "全选",
+    "gridFolderSelectNone": "全不选",
+    "gridFolderTreeToggle": "展开或折叠文件夹",
+    "gridFolderTrackCount": "子树共 {{count}} 首歌曲",
+    "gridFolderDirectTrackCount": "本目录 {{count}} 首歌曲",
+    "gridFolderTreeDirectSelection": "仅本层 · {{count}} 首歌曲",
+    "gridFolderTreeSelectionCount": "筛选范围内已选 {{selected}}/{{total}} 个文件夹",
+    "gridFolderTreeEmpty": "暂无可用的导入目录快照。",
+    "gridFolderExpandTreePanel": "展开",
+    "gridFolderCollapseTreePanel": "收起",
+    "gridFolderRescanRoot": "重新扫描导入根目录",
+    "gridFolderRemoveRoot": "移除导入根目录",
+    "gridFolderAddToQueue": "追加到队列",
+    "gridFolderRemoveSelected": "从音乐库移除",
+    "gridFolderCreatePlaylistDescription": "使用已选的 {{count}} 首本地歌曲创建歌单。",
+    "gridFolderPlaylistNamePlaceholder": "歌单名称",
+    "gridFolderRemoveSelectedTitle": "移除已选歌曲？",
+    "gridFolderRemoveSelectedDescription": "将从 Folia 及本地歌单中移除 {{count}} 首歌曲，但不会删除磁盘文件。",
+    "gridFolderRemoveRootTitle": "移除导入根目录？",
+    "gridFolderRemoveRootDescription": "从 Folia 移除 {{path}} 及其中全部歌曲？不会删除磁盘文件。",
     "login": "登录",
     "welcomeBack": "欢迎回来",
     "guestTitle": "先搜几首喜欢的歌试试看",
@@ -562,6 +619,16 @@ export default {
     "replayGainModeDesc": "检测到增益数据时，按单曲或专辑 ReplayGain 统一播放响度。",
     "integrationSettings": "连接与集成",
     "integrationSettingsDesc": "外部程序接入设置。",
+    "lyricApi": "歌词接口",
+    "enableLyricApi": "启用歌词接口",
+    "lyricApiDesc": "在固定端口上提供无需鉴权的本地接口，外部程序可读取当前歌曲的精简歌词数据。仅监听 127.0.0.1。",
+    "lyricApiAddress": "接口地址",
+    "copyLyricApiAddress": "复制接口地址",
+    "lyricApiRunning": "运行中",
+    "lyricApiUnavailable": "不可用",
+    "lyricApiEnabledStatus": "歌词接口已在 http://127.0.0.1:32109/v1/lyric 启用",
+    "lyricApiDisabledStatus": "歌词接口已关闭",
+    "lyricApiEnableFailed": "歌词接口启动失败",
     "storageSettings": "存储与同步",
     "storageSettingsDesc": "缓存占用、清理、主题云同步。",
     "storageSettingsPanelDesc": "缓存占用、清理、主题云同步。",
@@ -931,6 +998,8 @@ export default {
     "sonnetPostProcessGrain": "胶片颗粒",
     "sonnetPostProcessContrast": "对比度增强",
     "sonnetPostProcessRgbShift": "RGB 色差",
+    "sonnetPostProcessLensDistortion": "透镜扭曲",
+    "sonnetPostProcessLensDispersion": "透镜色散",
     "sonnetPostProcessHalftone": "半调网点",
     "sonnetPostProcessVignette": "暗角",
     "sonnetToggleOn": "开启",
@@ -1278,6 +1347,74 @@ export default {
     "noDescription": "暂无详细介绍",
   },
   "releaseNotes": {
+    "v0_6_18": {
+      "intro": "以下是 0.6.18 的新功能与改进",
+      "m3uPlaylists": {
+        "title": "便携的 M3U8 歌单",
+        "description": "可将 .m3u8 文件导入本地曲库，也可把 Folia 歌单导出为 UTF-8 M3U8，并保留便于迁移的路径。无法匹配或存在歧义的路径会明确统计，不会被静默加入。"
+      },
+      "gridMapBatchTools": {
+        "title": "搜索与批量管理本地集合",
+        "description": "GridMap 搜索现在支持多词查询，并会匹配名称、路径和元数据。可批量选择文件夹、专辑或艺术家进行播放、加入队列、创建歌单或从曲库移除；文件夹还支持重新扫描导入根目录，磁盘文件不会被删除。"
+      },
+      "foliaIgnore": {
+        "title": "灵活的 .foliaignore 规则",
+        "description": "可在导入根目录或子目录放置 .foliaignore，用熟悉的 gitignore 风格规则排除临时文件、缓存目录和不需要导入的音频。规则会在下次重新导入时生效。"
+      },
+      "incrementalLocalScans": {
+        "title": "更快的增量扫描",
+        "description": "重新导入时会复用未变化的文件，只处理新增、修改或移除的内容，并在后台读取元数据，让大型本地曲库刷新更快。"
+      },
+      "localCoverAssets": {
+        "title": "更高效的本地封面",
+        "description": "本地封面会按内容去重并持久化保存，界面按需要使用合适尺寸的缩略图，减少重复存储和不必要的原图处理。"
+      }
+    },
+    "v0_6_17": {
+      "intro": "以下是 0.6.17 的新功能与改进",
+      "sonnetSceneVariants": {
+        "title": "更多商籁场景变体",
+        "description": "商籁现已扩展至 100 种背景构图，新增天体、海洋、音乐、工艺与动感主题，并带来更多边框和几何变化。"
+      },
+      "sonnetDrawingMotion": {
+        "title": "分层绘制动效",
+        "description": "商籁的线条、填充与装饰元素现在会按错落节奏逐步绘制，让场景转场更丰富、更自然。"
+      },
+      "equalizerDaylight": {
+        "title": "浅色均衡器显示优化",
+        "description": "提升浅色主题下的对比度，并优化面板、控件和强调色，让音频均衡器更清晰易用。"
+      }
+    },
+    "v0_6_16": {
+      "intro": "以下是 0.6.16 的新功能与改进",
+      "qqMusicProvider": {
+        "title": "QQ 音乐初步接入",
+        "description": "目前提供基础的账号登录、在线搜索与播放能力，支持的功能仍较少，后续版本将继续完善。"
+      },
+      "audioEqualizer": {
+        "title": "音频均衡器",
+        "description": "可在播放控制面板中调节均衡器并保存声音设置，让不同设备获得更合适的听感。"
+      },
+      "lyricApi": {
+        "title": "桌面歌词 API",
+        "description": "新增本地歌词接口，方便外部应用读取当前播放歌曲与同步歌词。"
+      },
+      "localSongCovers": {
+        "title": "本地单曲封面",
+        "description": "现在可以为本地单曲导入、显示并持久化自定义封面。"
+      }
+    },
+    "v0_6_15": {
+      "intro": "以下是 0.6.15 的新功能与改进",
+      "sonnetLensEffects": {
+        "title": "商籁镜头特效",
+        "description": "新增透镜扭曲与色散调节，为商籁 / Sonnet 可视化带来更丰富的光学质感。"
+      },
+      "sonnetPostProcess": {
+        "title": "商籁后处理优化",
+        "description": "优化默认参数与转场稳定性，并改善 RGB Shift 的渲染效果，在保持视觉表现力的同时让歌词更加清晰。"
+      }
+    },
     "v0_6_12": {
       "intro": "以下是 0.6.14 的新功能与改进",
       "sonnetLayout": {
@@ -1369,6 +1506,8 @@ export default {
     "sortDescending": "降序",
     "importFolder": "导入文件夹",
     "importing": "导入中...",
+    "importPlaylist": "导入歌单",
+    "importingPlaylist": "正在导入歌单...",
     "noLocalMusic": "暂无本地音乐",
     "noFoldersFound": "未找到文件夹",
     "noAlbumsFound": "未找到专辑",
@@ -1392,6 +1531,7 @@ export default {
     "deleteFolderCount": "这将从您的库中移除包含嵌套子目录在内的共 {{count}} 首歌曲。",
     "deleteFolderNote": "注意：这只会从库中移除歌曲，不会影响您的磁盘文件。",
     "importNotSupported": "当前浏览器不支持文件夹导入",
+    "insecureHttpDisabled": "远程 HTTP 环境已禁用本地曲库，请使用 HTTPS、localhost 或 Electron 客户端。",
     "resyncFailed": "重新同步文件夹失败，请重试。",
     "deleteFailed": "删除文件夹失败，请重试。",
     "matchStatus": "匹配状态",
@@ -1455,6 +1595,12 @@ export default {
     "editPlaylist": "编辑歌单",
     "finishEditing": "完成编辑",
     "deletePlaylist": "删除歌单",
+    "exportPlaylist": "导出 M3U8",
+    "playlistImportSuccess": "已导入歌单“{{name}}”，共 {{count}} 首歌曲。",
+    "playlistImportPartial": "已导入歌单“{{name}}”中的 {{count}} 首歌曲，另有 {{skipped}} 个路径未匹配或存在歧义。",
+    "playlistImportNoMatches": "歌单中没有路径能匹配当前已导入的本地歌曲。",
+    "playlistImportFailed": "歌单导入失败，请确认文件为有效的 M3U 或 M3U8。",
+    "playlistExportSuccess": "已导出歌单“{{name}}”。",
     "entityInfo": "{{kind}}信息",
     "entityDisplayName": "展示名称",
     "mergeEntity": "合并{{kind}}",

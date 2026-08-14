@@ -18,6 +18,8 @@ import type { OnlineLyricsState } from '../types';
 import type { AudioQualityPreference } from '../types/onlineMusic';
 import type { ThemeSourceModel } from '../hooks/themeControllerState';
 import { getPlaybackSourceRef, getPlaybackSongSource, hasMixedPlaybackSources } from '../utils/appPlaybackGuards';
+import { getSizedCoverUrl } from '../utils/coverUrl';
+import { omni } from '../services/onlineMusic/omni';
 
 const TOUCH_GUIDE_DISPLAY_MS = 1400;
 
@@ -248,10 +250,25 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
     const isOnline = playbackSourceRef?.kind === 'online';
     const canCreateLocalPlaylist = isLocal;
     const canCreateNavidromePlaylist = isNavidrome;
+    const onlineProviderLabel = playbackSourceRef?.kind === 'online'
+        ? omni.getProviderLabel(playbackSourceRef.providerId)
+        : '';
+    const canLikeOnlineSong = Boolean(currentSong && isOnline && omni.canLikeSong(currentSong));
+    const likeDisabledReason = playbackControlsDisabled || isStage
+        ? t('status.stageLikeUnavailable')
+        : (isOnline && !canLikeOnlineSong
+            ? t('status.providerLikeUnavailable', { provider: onlineProviderLabel })
+            : undefined);
+    const likeDisabled = !currentSong || Boolean(likeDisabledReason);
+    const canAddOnlineSongToPlaylist = Boolean(currentSong && isOnline && omni.canAddSongToPlaylist(currentSong));
+    const showAddToPlaylistAction = Boolean(currentSong && !isStage && (isLocal || isOnline || isNavidrome));
     const canAddCurrentSongToPlaylist =
         (isLocal && (localPlaylists.length > 0 || canCreateLocalPlaylist))
-        || (isOnline && onlinePlaylists.length > 0)
+        || (isOnline && canAddOnlineSongToPlaylist && onlinePlaylists.length > 0)
         || (isNavidrome && (navidromePlaylists.length > 0 || canCreateNavidromePlaylist));
+    const addToPlaylistDisabledReason = isOnline && !canAddOnlineSongToPlaylist
+        ? t('status.providerPlaylistMutationUnavailable', { provider: onlineProviderLabel })
+        : (!canAddCurrentSongToPlaylist ? t('localMusic.noPlaylistsFound') : undefined);
     const supportsHover = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     const refreshNavidromePlaylists = React.useCallback(async () => {
         const { getNavidromeConfig, navidromeApi } = await import('../services/navidromeService');
@@ -682,7 +699,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                                     className={`w-full aspect-square rounded-2xl overflow-hidden shadow-lg relative mb-4 ${placeholderBg} flex items-center justify-center group cursor-pointer`}
                                 >
                                     {coverUrl ? (
-                                        <img src={coverUrl} alt="Art" className="w-full h-full object-cover" />
+                                        <img src={getSizedCoverUrl(coverUrl, 512)} alt="Art" decoding="async" className="w-full h-full object-cover" />
                                     ) : (
                                         <Disc size={40} className="text-white/20" />
                                     )}
@@ -734,21 +751,27 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                                         </button>
                                     </div>
 
-                                    {canAddCurrentSongToPlaylist && (
-                                        <div className={`absolute right-3 bottom-3 transition-all duration-200 ${
+                                    {showAddToPlaylistAction && (
+                                        <div
+                                            title={addToPlaylistDisabledReason || t('localMusic.addToPlaylist')}
+                                            className={`absolute right-3 bottom-3 transition-all duration-200 ${
                                             supportsHover
                                                 ? 'pointer-events-none group-hover:pointer-events-auto opacity-0 group-hover:opacity-100 translate-x-3 translate-y-3 group-hover:translate-x-0 group-hover:translate-y-0'
                                                 : `${isCoverActionsVisible ? 'pointer-events-auto opacity-100 translate-x-0 translate-y-0' : 'pointer-events-none opacity-0 translate-x-3 translate-y-3'}`
-                                        }`}>
+                                        }`}
+                                        >
                                             <button
                                                 type="button"
                                                 onClick={(event) => {
                                                     event.stopPropagation();
+                                                    if (!canAddCurrentSongToPlaylist) return;
                                                     setIsCoverActionsVisible(false);
                                                     setIsPlaylistPickerOpen(true);
                                                 }}
-                                                className="w-11 h-11 rounded-full border border-white/15 bg-black/25 text-white/90 backdrop-blur-md flex items-center justify-center transition-all hover:bg-black/40 hover:text-white"
-                                                title={t('localMusic.addToPlaylist')}
+                                                disabled={!canAddCurrentSongToPlaylist}
+                                                className="w-11 h-11 rounded-full border border-white/15 bg-black/25 text-white/90 backdrop-blur-md flex items-center justify-center transition-all hover:bg-black/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black/25"
+                                                title={addToPlaylistDisabledReason || t('localMusic.addToPlaylist')}
+                                                aria-label={addToPlaylistDisabledReason || t('localMusic.addToPlaylist')}
                                             >
                                                 <Star size={18} />
                                             </button>
@@ -813,6 +836,8 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                                             onToggleLoop={onToggleLoop}
                                             onLike={onLike}
                                             isLiked={isLiked}
+                                            likeDisabled={likeDisabled}
+                                            likeDisabledReason={likeDisabledReason}
                                             onGenerateAITheme={onGenerateAITheme}
                                             isGeneratingTheme={isGeneratingTheme}
                                             canGenerateAITheme={canGenerateAITheme}
@@ -849,6 +874,8 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                                                 onTrash={onFmTrash}
                                                 onLike={onLike}
                                                 isLiked={isLiked}
+                                                likeDisabled={likeDisabled}
+                                                likeDisabledReason={likeDisabledReason}
                                                 isDaylight={isDaylight}
                                                 primaryColor={theme.primaryColor}
                                             />

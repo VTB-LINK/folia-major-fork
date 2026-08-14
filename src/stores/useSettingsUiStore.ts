@@ -24,6 +24,12 @@ import {
     writePinnedCommandIds,
     type PinnedCommandIds,
 } from '../components/command-palette/pinnedCommandPreferences';
+import {
+    readStoredAudioEqualizerSettings,
+    resolveAudioEqualizerSettings,
+    writeStoredAudioEqualizerSettings,
+    type AudioEqualizerSettings,
+} from '../utils/audioEqualizer';
 
 // src/stores/useSettingsUiStore.ts
 // Shared settings state and actions used by App, Home, and SettingsModal.
@@ -508,6 +514,8 @@ const readStoredSonnetTuning = (): SonnetTuning => {
             postProcessRgbShift: resolvePendoloNumber(parsed.postProcessRgbShift, DEFAULT_SONNET_TUNING.postProcessRgbShift, 0, 1),
             postProcessHalftone: resolvePendoloNumber(parsed.postProcessHalftone, DEFAULT_SONNET_TUNING.postProcessHalftone, 0, 1),
             postProcessVignette: resolvePendoloNumber(parsed.postProcessVignette, DEFAULT_SONNET_TUNING.postProcessVignette, 0, 2),
+            postProcessLensDistortion: resolvePendoloNumber(parsed.postProcessLensDistortion, DEFAULT_SONNET_TUNING.postProcessLensDistortion, 0, 2),
+            postProcessLensDispersion: resolvePendoloNumber(parsed.postProcessLensDispersion, DEFAULT_SONNET_TUNING.postProcessLensDispersion, 0, 1),
         };
     } catch {
         return DEFAULT_SONNET_TUNING;
@@ -1227,6 +1235,8 @@ export type SettingsUiState = {
     webObsThemeMode: 'static' | 'builtin' | 'ai';
     queueAddBehavior: QueueAddBehavior;
     audioOutputDeviceId: string;
+    audioEqualizerSettings: AudioEqualizerSettings;
+    isAudioEqualizerOpen: boolean;
     volume: number;
     isMuted: boolean;
     loopMode: 'off' | 'all' | 'one';
@@ -1371,6 +1381,9 @@ export type SettingsUiState = {
     setWebObsThemeMode: (mode: 'static' | 'builtin' | 'ai') => void;
     handleSetQueueAddBehavior: (behavior: QueueAddBehavior) => void;
     handleSetAudioOutputDeviceId: (deviceId: string) => void;
+    handleSetAudioEqualizerSettings: (settings: AudioEqualizerSettings) => void;
+    openAudioEqualizer: () => void;
+    closeAudioEqualizer: () => void;
     handleSetVolume: (val: number) => void;
     handleToggleMute: () => void;
     handleToggleLoopMode: () => void;
@@ -1488,6 +1501,8 @@ export const useSettingsUiStore = create<SettingsUiState>((set, get) => ({
     webObsThemeMode: readStoredWebObsThemeMode(),
     queueAddBehavior: readStoredQueueAddBehavior(),
     audioOutputDeviceId: readStoredAudioOutputDeviceId(),
+    audioEqualizerSettings: readStoredAudioEqualizerSettings(),
+    isAudioEqualizerOpen: false,
     volume: readStoredVolume(),
     isMuted: getStoredBoolean('player_is_muted', false),
     loopMode: readStoredLoopMode(),
@@ -2184,6 +2199,8 @@ export const useSettingsUiStore = create<SettingsUiState>((set, get) => ({
             postProcessRgbShift: resolvePendoloNumber(patch.postProcessRgbShift, prev.postProcessRgbShift, 0, 1),
             postProcessHalftone: resolvePendoloNumber(patch.postProcessHalftone, prev.postProcessHalftone, 0, 1),
             postProcessVignette: resolvePendoloNumber(patch.postProcessVignette, prev.postProcessVignette, 0, 2),
+            postProcessLensDistortion: resolvePendoloNumber(patch.postProcessLensDistortion, prev.postProcessLensDistortion, 0, 2),
+            postProcessLensDispersion: resolvePendoloNumber(patch.postProcessLensDispersion, prev.postProcessLensDispersion, 0, 1),
         };
         if (typeof window !== 'undefined') localStorage.setItem('sonnet_tuning', JSON.stringify(next));
         set({ sonnetTuning: next });
@@ -2696,6 +2713,13 @@ export const useSettingsUiStore = create<SettingsUiState>((set, get) => ({
             localStorage.removeItem('audio_output_device_id');
         }
     },
+    handleSetAudioEqualizerSettings: (settings) => {
+        const resolved = resolveAudioEqualizerSettings(settings);
+        writeStoredAudioEqualizerSettings(resolved);
+        set({ audioEqualizerSettings: resolved });
+    },
+    openAudioEqualizer: () => set({ isAudioEqualizerOpen: true }),
+    closeAudioEqualizer: () => set({ isAudioEqualizerOpen: false }),
     handleSetVolume: (val) => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('player_volume', String(val));
