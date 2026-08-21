@@ -246,14 +246,9 @@ export const buildSonnetScene = (
             ));
         });
         const bounds = shotContainer.getLocalBounds();
-        if (shot.kind === 'mask-reveal') {
-            const mask = new Graphics()
-                .rect(bounds.x - 6, bounds.y - 6, bounds.width + 12, bounds.height + 12)
-                .fill(0xffffff);
-            shotContainer.addChild(mask);
-            shotContainer.mask = mask;
-        }
-        // Debug overlay stays above the text and never feeds the bounds/mask math.
+        // `mask-reveal` is revealed by the glyph timeline. A bounds-sized mask would stay
+        // static while camera tracking and parallax move the shot, clipping open MG artwork.
+        // Debug overlay stays above the text and never feeds the bounds/focus math.
         shotContainer.addChild(buildSonnetMeasuredBoundsDebug(pixi, placements));
         const usesGeoMg = shot.kind === 'type-impact' || shot.kind === 'fragment-collage';
         const debugInfo = createSonnetShotDebugInfo({
@@ -326,6 +321,12 @@ export const buildSonnetScene = (
         ? new pixi.BlurFilter({ strength: 0, quality: 1, kernelSize: 5, resolution: 0.5 })
         : null;
     if (transitionBlurFilter) {
+        // BlurFilter's padding is strength * 2, and Pixi pads the chain's shared render frame
+        // (already clipped to the viewport) by the sum of all enabled filters' padding. A growing
+        // frame rescales the vignette pass's screen coordinates, so ramping the blur brightened the
+        // vignette mid-transition. repeatEdgePixels pins padding at 0; the extra margin was
+        // off-screen anyway.
+        transitionBlurFilter.repeatEdgePixels = true;
         transitionBlurFilter.enabled = false;
         container.filters = [...(container.filters ?? []), transitionBlurFilter];
         postProcessFilters.push(transitionBlurFilter);

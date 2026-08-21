@@ -1,6 +1,6 @@
 import { collectVisualizerTunings } from '../components/visualizer/tuningRegistry';
 import { useSettingsUiStore } from '../stores/useSettingsUiStore';
-import { readStoredThemeAutoGenerateEnabled, readStoredThemeAutoSwitchEnabled } from '../services/themePreferences';
+import { readStoredThemeAutoGenerateEnabled, readStoredThemeAutoSwitchEnabled, readStoredThemeGenerationSource } from '../services/themePreferences';
 import type { CappellaAvatarImage, CappellaEmojiImage, CappellaTuning, MonetBackgroundImage, MonetBackgroundTuning, MonetPortraitImage, MonetTuning, NomandBackgroundTuning } from '../types';
 
 // src/utils/visualSettingsConfig.ts
@@ -19,16 +19,28 @@ export function buildVisualSettingsConfig(): Record<string, unknown> {
   return {
     songThemeAutoSwitchEnabled,
     songThemeAutoGenerateEnabled,
+    themeGenerationSource: readStoredThemeGenerationSource(),
     followSystemTheme: store.followSystemTheme,
     visualizerMode: store.visualizerMode,
     randomVisualizerModePerSong: store.randomVisualizerModePerSong,
     visualizerBackgroundMode: store.visualizerBackgroundMode,
     backgroundOpacity: store.backgroundOpacity,
+    // The other three legs of background.common, alongside the opacity above. The local OBS browser
+    // source has always carried them (it publishes the whole VisualizerBackgroundConfig), so leaving
+    // them out here made the two OBS paths disagree — and a copied config silently lost the cover-color,
+    // geometric-background and vignette toggles on re-import.
+    useCoverColorBg: store.useCoverColorBg,
+    disableVisualizerGeometricBackground: store.disableVisualizerGeometricBackground,
+    disableVisualizerVignette: store.disableVisualizerVignette,
+    // Static mode is not merely an audio-reactivity switch: it selects the low-motion branch inside
+    // several renderers, so a web overlay without it animates where the main window does not.
+    staticMode: store.staticMode,
     visualizerOpacity: store.visualizerOpacity,
     hidePlayerTranslationSubtitle: store.hidePlayerTranslationSubtitle,
     showSubtitleTranslation: store.showSubtitleTranslation,
     subtitleContentMode: store.subtitleContentMode,
     subtitleOverlayBackground: store.subtitleOverlayBackground,
+    subtitleOverlayOpacity: store.subtitleOverlayOpacity,
     showHarmonySubtitle: store.showHarmonySubtitle,
     harmonySubtitleBackground: store.harmonySubtitleBackground,
     lyricsFontStyle: store.lyricsFontStyle,
@@ -63,6 +75,7 @@ export function buildVisualSettingsConfig(): Record<string, unknown> {
     monetTuning: store.monetTuning,
     pendoloTuning: store.pendoloTuning,
     sonnetTuning: store.sonnetTuning,
+    temperaTuning: store.temperaTuning,
     urlBackgroundList: store.urlBackgroundList,
     urlBackgroundSelectedId: store.urlBackgroundSelectedId,
   };

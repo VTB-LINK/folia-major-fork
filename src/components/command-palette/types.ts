@@ -6,6 +6,8 @@ import type { HomeViewTab, LatentBackgroundTuning, LocalSong, PlayerState, Repla
 import type { AppLanguagePreference } from '../../i18n/config';
 import type { PanelTab } from '../UnifiedPanel';
 import type { SettingsModalInitialTab, SettingsSubviewId } from '../../stores/useSettingsUiStore';
+import type { AudioEqualizerModeId } from '../../utils/audioEqualizer';
+import type { ThemeGenerationSource } from '../../services/themePreferences';
 
 // src/components/command-palette/types.ts
 // Shared command palette contracts used by the registry, hook, and UI shell.
@@ -68,9 +70,11 @@ export type CommandPaletteContext = {
     toggleLoop: () => void;
     onReplayGainModeChange: (mode: ReplayGainMode) => void;
     openAudioEqualizer: () => void;
+    applyAudioSoundPreset: (modeId: AudioEqualizerModeId) => void;
     handleNextTrack: () => void;
     handlePrevTrack: () => void;
     shuffleQueue: () => void;
+    clearQueue: () => void;
     playQueue: SongResult[];
     playSong: (song: SongResult, queue?: SongResult[]) => void | Promise<void>;
     canGenerateAITheme: boolean;
@@ -91,6 +95,8 @@ export type CommandPaletteContext = {
     toggleSubtitleOverlayBackground: () => void;
     alwaysShowPlayerBackButton: boolean;
     toggleAlwaysShowPlayerBackButton: () => void;
+    alwaysShowTrackSwitchButtons: boolean;
+    toggleAlwaysShowTrackSwitchButtons: () => void;
     alwaysShowMainWindowTitlebar: boolean;
     toggleAlwaysShowMainWindowTitlebar: () => void;
     toggleDaylightMode: () => void;
@@ -99,9 +105,12 @@ export type CommandPaletteContext = {
     toggleVoiceInputPause: () => void;
     preventDisplaySleepDuringPlayback: boolean;
     togglePreventDisplaySleepDuringPlayback: () => void;
+    toggleWallpaperMode: () => void;
     setAppLanguagePreference: (preference: AppLanguagePreference) => Promise<void> | void;
     runAutoMatchBestLyric: () => Promise<boolean>;
     setIsUserGuideModalOpen: (isOpen: boolean) => void;
     openThemeQuickEditor: () => void;
     canOpenThemeQuickEditor: boolean;
+    themeGenerationSource: ThemeGenerationSource;
+    setThemeGenerationSource: (source: ThemeGenerationSource) => void;
 };
