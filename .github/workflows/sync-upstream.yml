@@ -165,11 +165,12 @@ jobs:
             echo '```'
             echo
             echo "**Resolution playbook:**"
-            echo "- obs regular files (appearanceCodec / appearanceImportPlan / ImportConfirmDialog / webObsTarget + obs tests): take **upstream's** version -- the refined superset of the fork's obs code."
+            echo "- obs files, incl. the now-upstreamed Custom CSS feature (obsCustomCss / ObsCopyCssButton / ObsWebSourceApp consumer / command-palette obs-css command, plus appearanceCodec / appearanceImportPlan / ImportConfirmDialog / webObsTarget + obs tests): take **upstream's** version -- the OBS Custom CSS assets feature was upstreamed, so these files now converge on upstream (near-identical)."
             echo "- obs AI layer (gemini \`ObsAiConfig\` + requestBody, obsWebAppearance \`parseObsAiParams\`, currentObsUrl ai block, useObsAiTheme): keep the **fork's** key-in-URL relay."
             echo "- ObsCopyUrlButton: keep the fork's \`containerClassName\` + upstream's width-reserve fix."
-            echo "- store / i18n: take the **union** (fork keys + upstream keys)."
-            echo "- fork infra (forkSource / webAiConfig / swa-api / Azure + sync workflows / Clarity / ControlsTab button / online-provider switcher isElectron-gate): keep the **fork's**."
+            echo "- store / i18n: take the **union** (fork keys + upstream keys). i18n key reordering can leave a kept fork-side key duplicated with an upstream copy elsewhere -- after resolving, grep each kept key's count and drop the extra. Fork-only i18n keys: obsAiKeyLeakWarning, agplNotice."
+            echo "- ControlsTab: take **upstream's** componentized version -- the fork OBS copy buttons and player-UI quick-toggle rows were dropped by the 2026-08-21 align decision. The five toggles (transparentPlayerBackground / autoHidePlayerChrome / hidePlayerProgressBar / hidePlayerTranslationSubtitle / showHarmonySubtitle) stay in Lab / Appearance settings; keep the fork defaults there (guarded by the useSettingsUiStore.defaults test)."
+            echo "- fork infra (forkSource / webAiConfig / swa-api / Azure + sync workflows / Clarity / online-provider switcher isElectron-gate): keep the **fork's**."
             echo
             echo "Resolve locally on a branch off \`fork-release\` (back up \`backup/fork-release-<sha>\` first), then merge to deploy. Close this issue once fork-release contains the upstream commit."
           } > /tmp/issue.md
