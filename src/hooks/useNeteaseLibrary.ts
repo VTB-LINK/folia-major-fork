@@ -175,7 +175,7 @@ export function useNeteaseLibrary({
             lastRefreshAuthExpiredRef.current = true;
             await clearAuthState();
         } catch (error) {
-            console.log('Not logged in, session expired, or offline');
+            console.debug('[NeteaseLibrary] not logged in, session expired, or offline');
             if (error instanceof Error && error.message === 'NETEASE_AUTH_EXPIRED') {
                 lastRefreshAuthExpiredRef.current = true;
                 await clearAuthState();

@@ -188,7 +188,12 @@ export const useKugouLibrary = () => {
                     });
                 }
             }
-            if (!cancelled) void refresh();
+            if (cancelled) return;
+            // Fork web deploy has no backend for the online providers, so they report not-configured.
+            // Skip the auto-refresh (and its refresh:unavailable warning) rather than attempting a
+            // refresh the provider cannot perform. Electron keeps them configured, so it still refreshes.
+            if (!omni.getProviderAvailability('kugou').configured) return;
+            void refresh();
         })();
         return () => { cancelled = true; };
     }, [refresh]);
