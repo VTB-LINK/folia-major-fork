@@ -233,8 +233,14 @@ export default async function viteConfig(_config: ConfigEnv): Promise<UserConfig
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 5000000,
-          // Docker serves this file dynamically; it must never be pinned in the PWA precache.
-          globIgnores: ['**/runtime-config.js']
+          // The single scope-'/' PWA worker also serves the local-cover route by importing its fetch
+          // handler here, so there is never a second worker registered at scope '/'. A second worker
+          // at the same scope clobbers this one on every load, and each swap fires controllerchange,
+          // which autoUpdate turns into window.location.reload() -> an endless reload loop.
+          importScripts: ['/folia-cover-sw.js'],
+          // runtime-config.js is served dynamically by Docker; folia-cover-sw.js is importScript'd, not
+          // precached. Neither may be pinned in the precache.
+          globIgnores: ['**/runtime-config.js', '**/folia-cover-sw.js']
         },
         manifest: {
           name: 'Folia Fork',

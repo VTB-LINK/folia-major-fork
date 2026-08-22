@@ -29,7 +29,13 @@ export const waitForLocalCoverServiceWorkerReady = async (
 export const initializeLocalCoverRuntime = async (): Promise<void> => {
   if (isLocalCoverWebRuntimeSupported() && 'serviceWorker' in navigator) {
     try {
-      await navigator.serviceWorker.register('/folia-cover-sw.js', { scope: '/' });
+      // In production the workbox PWA worker owns scope '/' and imports folia-cover-sw.js, so it also
+      // serves the cover route. Registering the standalone cover worker there too would clobber the PWA
+      // worker on every load and bounce controllerchange into an autoUpdate reload loop. Only register
+      // the standalone worker in dev, where the PWA worker is disabled (devOptions.enabled: false).
+      if (import.meta.env.DEV) {
+        await navigator.serviceWorker.register('/folia-cover-sw.js', { scope: '/' });
+      }
       await waitForLocalCoverServiceWorkerReady(navigator.serviceWorker.ready);
     } catch (error) {
       console.error('[LocalCoverAsset] Failed to initialize the local cover service worker', error);
