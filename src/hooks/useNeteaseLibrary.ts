@@ -243,6 +243,12 @@ export function useNeteaseLibrary({
             }
 
             initialBackgroundRefreshStartedRef.current = true;
+            // Fork's backend-less web deploy has no netease API base (no electron port and no
+            // VITE_NETEASE_API_BASE), so refreshUserData -> getApiBase() throws on every load,
+            // spinning a doomed login request. Skip the auto-refresh off Electron; the desktop
+            // client still refreshes. netease reports configured:true unconditionally, so this
+            // gate keys off the runtime rather than provider availability.
+            if (typeof window === 'undefined' || !(window as { electron?: unknown }).electron) return;
             await refreshUserData();
         } finally {
             setIsUserDataReady(true);
