@@ -49,3 +49,41 @@ jobs:
           api_build_command: "npm run build"
           output_location: ""
           skip_app_build: true
+
+  # 独立的 CDN 预热 job，与部署解耦（部署状态保持清晰、不被预热拖长）。
+  # 起因：Azure SWA 换上新一批 hash chunk 后，边缘/origin 首次回源很慢（实测冷回源
+  # 30–60s），会撞网关 504，使 bootstrap 的动态 import 失败而整页白屏。这里等部署
+  # propagate 后，从 live 的 sw.js 取出 precache 清单逐个拉一遍把缓存喂热，让真实用户
+  # 不再承担首次冷回源。best-effort：预热结果不影响部署（部署已在上一个 job 成功）。
+  warm_cache:
+    needs: build_and_deploy
+    if: success()
+    runs-on: ubuntu-latest
+    name: Warm CDN cache
+    steps:
+      - name: Wait for propagation, then warm
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          set +e
+          BASE="https://folia.fork.vtb.tools"
+          echo "等待部署 propagate（3 分钟）..."
+          sleep 180
+          echo "轮询确认站点可访问..."
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 "$BASE/sw.js")
+            echo "  sw.js -> $code (try $i)"
+            [ "$code" = "200" ] && break
+            sleep 10
+          done
+          curl -s --max-time 90 "$BASE/sw.js" -o sw.js
+          grep -oE 'assets/[A-Za-z0-9._-]+\.(js|css)' sw.js | sort -u > assets.txt
+          printf 'index.html\nsw.js\nstage-client.html\n' >> assets.txt
+          echo "预热 $(wc -l < assets.txt) 个文件（两轮：第一轮喂热、第二轮校验）"
+          for round in 1 2; do
+            echo "--- 第 $round 轮 ---"
+            cat assets.txt | xargs -P 20 -I{} curl -s -o /dev/null --max-time 120 \
+              -w '%{http_code} %{time_total}s {}\n' "$BASE/{}" \
+              | awk '$1!="200"{print "  非200: "$0}'
+          done
+          echo "预热完成（best-effort）"
