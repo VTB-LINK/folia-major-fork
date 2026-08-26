@@ -295,7 +295,9 @@ export const useElectronPlaybackBridge = ({
     };
 
     useEffect(() => {
-        if (!isElectronWindow) {
+        // Click-through keeps forwarding mouse-move into the renderer, so the titlebar would keep
+        // revealing itself on a window the cursor cannot actually reach. Stop tracking while it is on.
+        if (!isElectronWindow || mainWindowClickThroughEnabled) {
             setIsTitlebarRevealed(false);
             return;
         }
@@ -314,7 +316,7 @@ export const useElectronPlaybackBridge = ({
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseleave', handleMouseLeave);
         };
-    }, [isElectronWindow, setIsTitlebarRevealed]);
+    }, [isElectronWindow, mainWindowClickThroughEnabled, setIsTitlebarRevealed]);
 
     useEffect(() => {
         if (!window.electron?.onTaskbarControl) {
@@ -425,8 +427,19 @@ export const useElectronPlaybackBridge = ({
         publish({ includeLyrics: true });
         const intervalId = window.setInterval(() => publish(), 500);
 
-        const handleResize = () => publish();
+        let lastReportedDpr = window.devicePixelRatio || 1;
+        const handleResize = () => {
+            publish();
+            // Only report DPR when it actually changes (avoids unnecessary IPC round-trips).
+            const currentDpr = window.devicePixelRatio || 1;
+            if (currentDpr !== lastReportedDpr) {
+                lastReportedDpr = currentDpr;
+                window.electron?.reportDevicePixelRatio(currentDpr);
+            }
+        };
         window.addEventListener('resize', handleResize);
+        // Report once on mount in case the window is never resized before exporting.
+        window.electron?.reportDevicePixelRatio(lastReportedDpr);
 
         return () => {
             window.clearInterval(intervalId);

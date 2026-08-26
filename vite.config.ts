@@ -240,7 +240,9 @@ export default async function viteConfig(_config: ConfigEnv): Promise<UserConfig
           importScripts: ['/folia-cover-sw.js'],
           // runtime-config.js is served dynamically by Docker; folia-cover-sw.js is importScript'd, not
           // precached. Neither may be pinned in the precache.
-          globIgnores: ['**/runtime-config.js', '**/folia-cover-sw.js']
+          globIgnores: ['**/runtime-config.js', '**/folia-cover-sw.js'],
+          // API navigations must reach the deployment platform instead of the SPA shell.
+          navigateFallbackDenylist: [/^\/api(?:\/|$)/]
         },
         manifest: {
           name: 'Folia Fork',
