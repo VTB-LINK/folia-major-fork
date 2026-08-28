@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { MotionValue } from 'framer-motion';
-import { X, Command, MousePointer2, Keyboard, Settings2, Trash2, Database, Monitor, PlayCircle, Loader2, Server, Check, AlertCircle, FlaskConical, ChevronLeft, ChevronRight, RefreshCw, Download, ExternalLink, Sparkles, Palette, CircleHelp, Languages, Moon, Sun } from 'lucide-react';
+import { X, Command, MousePointer2, Keyboard, Settings2, Trash2, Database, Monitor, PlayCircle, Loader2, Server, Check, AlertCircle, FlaskConical, ChevronLeft, ChevronRight, RefreshCw, Download, ExternalLink, Sparkles, Palette, CircleHelp, Languages, Moon, Sun, Terminal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getCacheUsageByCategory, clearCacheByCategory, clearAllData } from '../../services/db';
 import { DualTheme, StageStatus, StageSource, Theme, ThemeMode, type CadenzaTuning, type CappellaEmojiImage, type CappellaTuning, type FumeTuning, type NowPlayingConnectionStatus, type PartitaTuning, type ReplayGainMode, type TiltTuning, type StoredCustomLyricsFont, type VisualizerMode } from '../../types';
@@ -19,9 +19,11 @@ import IntegrationSettingsSubview from './settings/IntegrationSettingsSubview';
 import { FORK_SOURCE_URL, FORK_SOURCE_LABEL } from '../../utils/forkSource';
 import type { PlayerCapConnectionStatus } from '../../types/playerCap';
 import LabSettingsModal from './settings/LabSettingsModal';
+import DeveloperSettingsSubview from './settings/DeveloperSettingsSubview';
 import PlaybackSettingsSubview from './settings/PlaybackSettingsSubview';
 import StorageSettingsSection from './settings/StorageSettingsSection';
 import { AiHelpPromptModal } from './AiHelpPromptModal';
+import { discordIconUrl, openDiscordInvite } from '../shared/discordCommunity';
 import meowImageUrl from '../../../build/miao.png';
 import type { LyricData } from '../../types';
 import { selectSettingsUiSnapshot, type SettingsSubviewId, type VisualizerSettingsSection, useSettingsUiStore } from '../../stores/useSettingsUiStore';
@@ -171,6 +173,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         handleToggleWallpaperMode: onToggleWallpaperMode,
         openPlayerOnLaunch,
         enableMediaCache,
+        mediaCacheLimitGb,
         backgroundOpacity,
         subtitleOverlayOpacity,
         subtitleOverlayBackground,
@@ -241,6 +244,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         handleToggleHideRemoteControlTaskbarIcon: onToggleHideRemoteControlTaskbarIcon,
         handleToggleOpenPlayerOnLaunch: onToggleOpenPlayerOnLaunch,
         handleToggleMediaCache: onToggleMediaCache,
+        handleSetMediaCacheLimitGb: onSetMediaCacheLimitGb,
         handleSetBackgroundOpacity: setBackgroundOpacity,
         handleSetSubtitleOverlayOpacity: setSubtitleOverlayOpacity,
         handleToggleSubtitleOverlayBackground: onToggleSubtitleOverlayBackground,
@@ -391,7 +395,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         playlist: '0 B',
         lyrics: '0 B',
         cover: '0 B',
-        media: '0 B'
+        media: '0 B',
+        analysis: '0 B'
     });
     const [mediaCount, setMediaCount] = useState(0);
     const [isCleaning, setIsCleaning] = useState<string | null>(null);
@@ -742,7 +747,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             playlist: formatBytes(usage.playlist),
             lyrics: formatBytes(usage.lyrics),
             cover: formatBytes(usage.cover),
-            media: formatBytes(usage.media)
+            media: formatBytes(usage.media),
+            analysis: formatBytes(usage.analysis)
         });
         setMediaCount(usage.mediaCount);
     };
@@ -753,7 +759,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         }
     }, [activeTab]);
 
-    const handleClear = async (category: 'playlist' | 'lyrics' | 'cover' | 'media') => {
+    const handleClear = async (category: 'playlist' | 'lyrics' | 'cover' | 'media' | 'analysis') => {
         setIsCleaning(category);
         await clearCacheByCategory(category);
         await fetchCacheUsage();
@@ -1154,7 +1160,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         { id: 'integration', icon: Server, label: t('options.integrationSettings') },
         { id: 'storage', icon: Database, label: t('options.storageSettings') },
         ...(isElectron ? [{ id: 'desktop', icon: Command, label: t('options.desktopSettings') }] : []),
-        { id: 'lab', icon: FlaskConical, label: t('options.labSettings') }
+        { id: 'lab', icon: FlaskConical, label: t('options.labSettings') },
+        { id: 'developer', icon: Terminal, label: t('options.developerSettings') }
     ];
 
     return (
@@ -1330,6 +1337,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                     >
                                         <CircleHelp size={16} />
                                         {t('aiHelp.openButton', 'Need help?')}
+                                    </button>
+                                    {/* 一排单色胶囊里唯一带颜色的那颗，靠色彩而不是体积被看见。 */}
+                                    <button
+                                        type="button"
+                                        onClick={openDiscordInvite}
+                                        className="px-6 py-2 bg-[#5865F2]/15 hover:bg-[#5865F2]/25 ring-1 ring-inset ring-[#5865F2]/30 transition-colors rounded-full text-sm font-medium flex items-center gap-2"
+                                        style={{ color: 'var(--text-primary)' }}
+                                    >
+                                        <img src={discordIconUrl} alt="" aria-hidden className="h-[18px] w-[18px] rounded-[5px]" />
+                                        {t('help.joinDiscord', 'Join our Discord')}
                                     </button>
                                 </div>
 
@@ -1525,6 +1542,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     {activeSettingsSection === 'storage' && (t('options.storageSettings') || "Storage Settings")}
                                                     {activeSettingsSection === 'desktop' && (t('options.desktopSettings') || "Desktop Settings")}
                                                     {activeSettingsSection === 'lab' && (t('options.labSettings') || "Lab Settings")}
+                                                    {activeSettingsSection === 'developer' && (t('options.developerSettings') || "Developer")}
                                                 </h2>
                                                 <p className="text-xs opacity-50 mt-1" style={{ color: 'var(--text-secondary)' }}>
                                                     {activeSettingsSection === 'appearance' && (t('options.visualSettingsPanelDesc') || "Customize the look and feel of Folia.")}
@@ -1534,6 +1552,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     {activeSettingsSection === 'storage' && (t('options.storageSettingsPanelDesc') || "Manage cache and local data.")}
                                                     {activeSettingsSection === 'desktop' && (t('options.desktopSettingsPanelDesc') || "System integration and updates.")}
                                                     {activeSettingsSection === 'lab' && (t('options.labSettingsDesc') || "Experimental features.")}
+                                                    {activeSettingsSection === 'developer' && (t('options.developerSettingsDesc') || "What the app logged while it was running.")}
                                                 </p>
                                             </div>
                                             {activeSettingsSection === 'appearance' && (
@@ -1672,11 +1691,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 enableMediaCache={enableMediaCache}
                                                 errorTextColor={errorTextColor}
                                                 isCleaning={isCleaning}
+                                                isDaylight={isDaylight}
                                                 isElectron={isElectron}
+                                                mediaCacheLimitGb={mediaCacheLimitGb}
                                                 mediaCount={mediaCount}
                                                 onChooseCacheDirectory={handleChooseCacheDirectory}
                                                 onClear={handleClear}
                                                 onClearAll={handleClearAllCache}
+                                                onSetMediaCacheLimitGb={onSetMediaCacheLimitGb}
                                                 onToggleMediaCache={onToggleMediaCache}
                                                 settingsCardClass={settingsCardClass}
                                                 settingsIconClass={settingsIconClass}
@@ -1742,6 +1764,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     supported: isElectron && typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('win'),
                                                     onToggle: () => onToggleVoiceInputPause(!voiceInputPauseEnabled),
                                                 }}
+                                            />
+                                        )}
+                                        {activeSettingsSection === 'developer' && (
+                                            <DeveloperSettingsSubview
+                                                isDaylight={isDaylight}
+                                                settingsCardClass={settingsCardClass}
+                                                theme={theme}
+                                                toggleOffBackgroundClass={toggleOffBackgroundClass}
                                             />
                                         )}
                                     </div>
