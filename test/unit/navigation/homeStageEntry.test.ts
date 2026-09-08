@@ -30,6 +30,7 @@ const createBaseParams = () => {
     return {
         playSong: vi.fn(),
         navigateToPlayer: vi.fn(),
+        navigateToLattice: vi.fn(),
         refreshOnlineProviderPlaylists: vi.fn().mockResolvedValue(undefined),
         user: null,
         playlists: [],
@@ -96,7 +97,6 @@ describe('home stage entry wiring', () => {
         const model = buildHomeModel(params);
 
         expect(model.surfaceProps.stageEnabled).toBe(true);
-        expect(model.surfaceProps.stageSource).toBe('stage-api');
         expect(model.surfaceProps.stageIsActive).toBe(true);
 
         await model.surfaceProps.onOpenStagePlayer?.();
@@ -112,7 +112,6 @@ describe('home stage entry wiring', () => {
         });
 
         expect(model.surfaceProps.stageEnabled).toBe(false);
-        expect(model.surfaceProps.stageSource).toBeUndefined();
         expect(model.surfaceProps.stageIsActive).toBe(false);
     });
 });

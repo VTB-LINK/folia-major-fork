@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Loader2, Settings } from 'lucide-react';
+import { Search, Loader2, Settings, PanelsTopLeft } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { resolveSearchSource, useSearchNavigationStore } from '../stores/useSearchNavigationStore';
-import { useSettingsUiStore } from '../stores/useSettingsUiStore';
 import type { LocalLibraryCatalogSnapshot } from '../hooks/useLocalLibraryCatalog';
 import { useShallow } from 'zustand/react/shallow';
 import { SongResult, LocalSong, LocalPlaylist, LocalLibraryGroup, Theme, PlayerState, type StatusMessage } from '../types';
@@ -31,6 +30,10 @@ import { resolveOnlineProviderAccountView } from './app/home/onlineProviderAccou
 import type { MediaId, ProviderCollection, ProviderUser } from '../types/onlineMusic';
 import qqIcon from '../assets/providers/qq.svg';
 import wechatIcon from '../assets/providers/wechat.svg';
+import { useHomeLayoutSettingsStore } from '../stores/useHomeLayoutSettingsStore';
+import { useNeteaseApiStatusStore } from '../stores/useNeteaseApiStatusStore';
+import { useThemeSettingsStore } from '../stores/useThemeSettingsStore';
+import { countRender } from '../dev/renderCount';
 
 // src/components/Grid3D.tsx
 // Glassmorphic interactive desktop home view replacing the legacy 3D carousel.
@@ -58,18 +61,10 @@ interface Grid3DProps {
     playlists: ProviderCollection[];
     cloudPlaylist?: ProviderCollection | null;
     currentTrack?: SongResult | null;
-    isPlaying: boolean;
-    onSelectPlaylist: (playlist: ProviderCollection) => void;
-    onSelectAlbum: (albumId: MediaId) => void;
-    onSelectArtist: (artistId: MediaId) => void;
-    onSelectLocalAlbum?: (albumName: string) => void;
-    onSelectLocalArtist?: (artistName: string) => void;
     localSongs: LocalSong[];
     localLibraryCatalog: LocalLibraryCatalogSnapshot;
     localPlaylists: LocalPlaylist[];
     onRefreshLocalSongs: () => Promise<void> | void;
-    onPlayLocalSong: (song: LocalSong, queue?: LocalSong[]) => void;
-    onAddLocalSongToQueue?: (song: LocalSong) => void;
     localMusicState: {
         activeRow: 0 | 1 | 2 | 3;
         selectedGroup: LocalLibraryGroup | null;
@@ -90,10 +85,6 @@ interface Grid3DProps {
         focusedArtistIndex: number;
         focusedPlaylistIndex: number;
     }>>;
-    onMatchSong?: (song: LocalSong) => void;
-    onPlayNavidromeSong?: (song: any, queue?: any[]) => void;
-    onAddNavidromeSongsToQueue?: (songs: any[]) => void;
-    onMatchNavidromeSong?: (song: any) => void;
     navidromeFocusedAlbumIndex?: number;
     setNavidromeFocusedAlbumIndex?: (index: number) => void;
     pendingNavidromeSelection?: any;
@@ -101,10 +92,10 @@ interface Grid3DProps {
     onSearchCommitted: (query: string, sourceTab: any, replace?: boolean) => void;
     theme: Theme;
     onOpenSettings?: (initialTab?: 'help' | 'options') => void;
+    onOpenLattice?: () => void;
     navidromeEnabled?: boolean;
     onPlayAll?: (songs: SongResult[]) => void;
     onAddAllToQueue?: (songs: SongResult[]) => void;
-    onAddSongToQueue?: (song: SongResult) => void;
     onStatusMessage?: (message: StatusMessage) => void;
     onOpenGridView?: (collection: any) => void;
     stageEnabled?: boolean;
@@ -114,6 +105,7 @@ interface Grid3DProps {
 }
 
 export const Grid3D: React.FC<Grid3DProps> = (props) => {
+    countRender('Grid3D');
     const {
         onPlaySong,
         onBackToPlayer,
@@ -135,6 +127,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         onSearchCommitted,
         theme,
         onOpenSettings,
+        onOpenLattice,
         navidromeEnabled = false,
         onOpenGridView,
         onStatusMessage,
@@ -150,12 +143,15 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
     const { t } = useTranslation();
     const {
         isDaylight,
+    } = useThemeSettingsStore(useShallow(state => ({
+        isDaylight: state.isDaylight,
+    })));
+    const {
         showHomeTabPlaylist,
         showHomeTabRadio,
         showHomeTabAlbums,
         showHomeTabLocal,
-    } = useSettingsUiStore(useShallow(state => ({
-        isDaylight: state.isDaylight,
+    } = useHomeLayoutSettingsStore(useShallow(state => ({
         showHomeTabPlaylist: state.showHomeTabPlaylist,
         showHomeTabRadio: state.showHomeTabRadio,
         showHomeTabAlbums: state.showHomeTabAlbums,
@@ -328,6 +324,23 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         // 有多种登录方式时先停在步骤一，选定之前不向后端要二维码。
         if (methods.length > 0) return;
         await startQrLogin(providerId);
+    };
+
+    // 网易云的本地后端起不来时，二维码请求必然失败；弹窗改为直接暴露原因和重启入口。
+    const neteaseApiSupported = useNeteaseApiStatusStore(state => state.supported);
+    const neteaseApiStatus = useNeteaseApiStatusStore(state => state.status);
+    const neteaseApiRestarting = useNeteaseApiStatusStore(state => state.restarting);
+    const restartNeteaseApi = useNeteaseApiStatusStore(state => state.restart);
+    const neteaseBackendFailed = neteaseApiSupported
+        && loginProviderId === 'netease'
+        && neteaseApiStatus?.status === 'error';
+
+    const handleRestartNeteaseApi = async () => {
+        await restartNeteaseApi();
+        // 重启成功后直接把二维码要回来，省掉一次手动刷新。
+        if (useNeteaseApiStatusStore.getState().status?.status === 'running') {
+            await startQrLogin('netease');
+        }
     };
 
     const selectLoginMethod = (methodId: string) => {
@@ -785,6 +798,27 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                                         <span className="relative z-10">{t('home.stage')}</span>
                                     </button>
                                 )}
+                                {/* 播放队列的海报视图和 Stage 一样属于「去哪儿」，所以它在这一排，
+                                    而不是标题旁的工具图标。没有在播歌曲时队列也是空的，直接不出现。
+                                    平时只占一个图标的宽度，指针悬停或键盘聚焦时才展开文字——这一排
+                                    已经有五个内容 tab，多一个常驻文字就把胶囊撑得太长。点击始终直达。 */}
+                                {onOpenLattice && currentTrack && (
+                                    <button
+                                        onClick={onOpenLattice}
+                                        data-testid="home-lattice-pill"
+                                        title={t('home.lattice')}
+                                        aria-label={t('home.lattice')}
+                                        className={`group relative inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs md:text-sm font-medium transition-colors duration-300 whitespace-nowrap ${navPillInactiveText}`}
+                                    >
+                                        <PanelsTopLeft size={14} className="relative z-10 shrink-0" />
+                                        <span
+                                            aria-hidden="true"
+                                            className="relative z-10 max-w-0 overflow-hidden opacity-0 transition-all duration-300 ease-out group-hover:ml-1.5 group-hover:max-w-28 group-hover:opacity-100 group-focus-visible:ml-1.5 group-focus-visible:max-w-28 group-focus-visible:opacity-100"
+                                        >
+                                            {t('home.latticeLabel')}
+                                        </span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -941,6 +975,16 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                                 })),
                                 selectedId: selectedLoginMethodId,
                                 onSelect: selectLoginMethod,
+                            }
+                            : undefined}
+                        backendFailure={neteaseBackendFailed
+                            ? {
+                                title: t('home.loginBackendDown'),
+                                detail: neteaseApiStatus?.error ?? null,
+                                restartLabel: t('home.restartBackend'),
+                                restartingLabel: t('home.restartingBackend'),
+                                restarting: neteaseApiRestarting,
+                                onRestart: () => void handleRestartNeteaseApi(),
                             }
                             : undefined}
                         // 刷新时保留已选的登录方式，否则用户会被踢回步骤一。

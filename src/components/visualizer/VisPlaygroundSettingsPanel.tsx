@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CaptionsOff, Monitor, PanelTop, RotateCcw, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, CaptionsOff, Focus, Monitor, PanelTop, RotateCcw, type LucideIcon } from 'lucide-react';
 import {
     type CappellaAvatarImage,
     type CappellaEmojiImage,
@@ -19,7 +19,6 @@ import {
     type DioramaTuning,
     type VisualizerMode,
 } from '../../types';
-import { useSettingsUiStore } from '../../stores/useSettingsUiStore';
 import { colorWithAlpha } from './colorMix';
 import FontFallbackStackControl from './FontFallbackStackControl';
 import { VISUALIZER_REGISTRY, getVisualizerModeLabel, type VisualizerRegistryEntry } from './registry';
@@ -32,6 +31,7 @@ import {
     getVisualizerBackgroundRegistryEntry,
     VISUALIZER_BACKGROUND_REGISTRY,
 } from './backgrounds/registry';
+import { usePlayerChromeSettingsStore } from '../../stores/usePlayerChromeSettingsStore';
 
 // src/components/visualizer/VisPlaygroundSettingsPanel.tsx
 // Right-side settings panel for the click-to-edit visualizer playground.
@@ -137,6 +137,8 @@ interface VisPlaygroundSettingsPanelProps {
     onSubtitleOverlayOpacityChange?: (opacity: number) => void;
     subtitleOverlayBackground: boolean;
     onToggleSubtitleOverlayBackground?: (enabled: boolean) => void;
+    subtitleUpcomingLyricsBlur: boolean;
+    onToggleSubtitleUpcomingLyricsBlur?: (enabled: boolean) => void;
     showHarmonySubtitle: boolean;
     onToggleShowHarmonySubtitle?: (enabled: boolean) => void;
     harmonySubtitleBackground: boolean;
@@ -382,6 +384,8 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
         onSubtitleOverlayOpacityChange,
         subtitleOverlayBackground,
         onToggleSubtitleOverlayBackground,
+        subtitleUpcomingLyricsBlur,
+        onToggleSubtitleUpcomingLyricsBlur,
         showHarmonySubtitle,
         onToggleShowHarmonySubtitle,
         harmonySubtitleBackground,
@@ -424,7 +428,7 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
         setSubtitleFontFamilyDraft(subtitleFontFamily ?? '');
     }, [subtitleFontFamily]);
 
-    const enablePlayerPageNativeBlur = useSettingsUiStore(state => state.enablePlayerPageNativeBlur);
+    const enablePlayerPageNativeBlur = usePlayerChromeSettingsStore(state => state.enablePlayerPageNativeBlur);
     const resolvedBackgroundMode = backgroundConfig?.mode ?? DEFAULT_VISUALIZER_BACKGROUND_MODE;
     const backgroundEntry = getVisualizerBackgroundRegistryEntry(resolvedBackgroundMode);
     const backgroundModeOptions = useMemo(() => (
@@ -779,6 +783,14 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
                             onChange={onToggleSubtitleOverlayBackground}
                             theme={theme}
                             icon={PanelTop}
+                        />
+
+                        <ToggleRow
+                            label={t('options.subtitleUpcomingLyricsBlur')}
+                            checked={subtitleUpcomingLyricsBlur}
+                            onChange={onToggleSubtitleUpcomingLyricsBlur}
+                            theme={theme}
+                            icon={Focus}
                         />
 
                         <ToggleRow

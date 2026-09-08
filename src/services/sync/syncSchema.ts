@@ -1,5 +1,6 @@
 import { sanitizeDualTheme } from '../themeSanitizer';
-import { hasVisualizerBackgroundMode } from '../../components/visualizer/backgrounds/registry';
+// 背景模式没有 mod 投稿通道，静态清单与活注册表在任何时刻都等价。
+import { isBuiltinVisualizerBackgroundMode } from '../../types/visualizerModes';
 import {
     SYNC_SCHEMA_VERSION,
     type SyncLibraryExportBundle,
@@ -37,7 +38,7 @@ const isFontStyle = (value: unknown): value is SyncedVisualSettings['lyricsFontS
 );
 
 const isVisualizerBackgroundMode = (value: unknown): value is NonNullable<SyncedVisualSettings['visualizerBackgroundMode']> => (
-    hasVisualizerBackgroundMode(value)
+    isBuiltinVisualizerBackgroundMode(value)
 );
 
 const parseSyncedVisualSettings = (value: Record<string, unknown>): SyncedVisualSettings => {
@@ -55,6 +56,7 @@ const parseSyncedVisualSettings = (value: Record<string, unknown>): SyncedVisual
         settings.subtitleContentMode = value.subtitleContentMode;
     }
     if (typeof value.subtitleOverlayBackground === 'boolean') settings.subtitleOverlayBackground = value.subtitleOverlayBackground;
+    if (typeof value.subtitleUpcomingLyricsBlur === 'boolean') settings.subtitleUpcomingLyricsBlur = value.subtitleUpcomingLyricsBlur;
     if (isFontStyle(value.lyricsFontStyle)) settings.lyricsFontStyle = value.lyricsFontStyle;
     if (isFiniteNumber(value.lyricsFontScale)) settings.lyricsFontScale = value.lyricsFontScale;
     if (value.lyricsFontWeight === null) settings.lyricsFontWeight = null;

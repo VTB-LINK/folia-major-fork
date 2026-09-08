@@ -52,6 +52,7 @@ describe('Visual Settings Import and Export', () => {
         showSubtitleTranslation: false,
         subtitleContentMode: 'romanization' as const,
         subtitleOverlayBackground: true,
+        subtitleUpcomingLyricsBlur: false,
         showHarmonySubtitle: false,
         harmonySubtitleBackground: true,
         lyricsFontStyle: 'sans',
@@ -177,6 +178,7 @@ describe('Visual Settings Import and Export', () => {
         monetTuning: {
             keywordColoringEnabled: false,
             showDescription: false,
+            showAudioVisualization: false,
             audioStyle: 'line' as const,
             fontScale: 1.1,
             portraitSource: 'cover' as const,
@@ -204,6 +206,7 @@ describe('Visual Settings Import and Export', () => {
         expect(decoded.showSubtitleTranslation).toBe(false);
         expect(decoded.subtitleContentMode).toBe('romanization');
         expect(decoded.subtitleOverlayBackground).toBe(true);
+        expect(decoded.subtitleUpcomingLyricsBlur).toBe(false);
         expect(decoded.showHarmonySubtitle).toBe(false);
         expect(decoded.harmonySubtitleBackground).toBe(true);
         expect(decoded.lyricsFontWeight).toBe(650);
@@ -230,6 +233,7 @@ describe('Visual Settings Import and Export', () => {
         expect(decoded.latentBackgroundTuning).toEqual(sampleConfig.latentBackgroundTuning);
         expect(decoded.monetTuning?.portraitOffsetX).toBe(-120);
         expect(decoded.monetTuning?.portraitStyle).toBe('square');
+        expect(decoded.monetTuning?.showAudioVisualization).toBe(false);
         expect(decoded.sonnetTuning?.enableTransitions).toBe(true);
         expect(decoded.sonnetTuning?.outerFrameMode).toBe('frame');
         expect(decoded.sonnetTuning?.postProcessLensDistortion)
@@ -260,6 +264,7 @@ describe('Visual Settings Import and Export', () => {
         expect(decoded.showSubtitleTranslation).toBe(false);
         expect(decoded.subtitleContentMode).toBe('romanization');
         expect(decoded.subtitleOverlayBackground).toBe(true);
+        expect(decoded.subtitleUpcomingLyricsBlur).toBe(false);
         expect(decoded.showHarmonySubtitle).toBe(false);
         expect(decoded.harmonySubtitleBackground).toBe(true);
         expect(decoded.lyricsFontWeight).toBe(650);
@@ -366,6 +371,7 @@ describe('Visual Settings Import and Export', () => {
             ...DEFAULT_TEMPERA_TUNING,
             cameraIntensity: 1.4,
             glyphMotion: 0.6,
+            wholeLineLyrics: true,
             glyphSettleStretch: 0.85,
             colorMode: 'gradient' as const,
             showBlocks: false,

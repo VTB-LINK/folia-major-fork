@@ -4,6 +4,7 @@ import { getCachedCoverUrl, loadCachedOrFetchCover } from '../../../services/cov
 import { getLocalSongs } from '../../../services/db';
 import { ensureLocalSongCoverAsset, getAudioFromLocalSong } from '../../../services/localMusicService';
 import { applyLocalLibraryEntityDisplay, buildUnifiedLocalSong } from '../../../services/playbackAdapters';
+import { buildNavidromeSourceRevision } from '../../../services/playbackRecovery/sourceRevision';
 import { getLocalLibraryCatalogSnapshot } from '../../../services/localLibraryEntityRepository';
 import { getNavidromeConfig, navidromeApi } from '../../../services/navidromeService';
 import { applyOnlineAudioSourceMetadata, loadOnlineSongAudioSource } from '../../../services/onlinePlayback';
@@ -28,6 +29,8 @@ import { omni } from '../../../services/onlineMusic/omni';
 import { getCachedSongCoverUrl, getSongCacheWithLegacyMigration } from '../../../services/onlineMusic/resourceCache';
 import { getSongCoverUrl } from '../../../services/onlineMusic/songMetadata';
 import { useOnlineProviderAccountStore } from '../../../stores/useOnlineProviderAccountStore';
+import { setStatusMessage as setStatusMsg } from '../../../stores/useStatusMessageStore';
+import { setAudioSrc, setCachedCoverUrl, setCurrentSong } from '../../../stores/usePlaybackStore';
 
 // src/components/app/playback/restorePlaybackSource.ts
 // Rehydrates playable audio and lyrics for a remembered song without reusing stale blob URLs.
@@ -39,12 +42,8 @@ type RestorePlaybackSourceParams = {
     userId?: MediaId;
     blobUrlRef: MutableRefObject<string | null>;
     currentOnlineAudioUrlFetchedAtRef: MutableRefObject<number | null>;
-    setCurrentSong: SetState<SongResult | null>;
     setPlayQueue?: SetState<SongResult[]>;
-    setCachedCoverUrl: SetState<string | null>;
-    setAudioSrc: SetState<string | null>;
     setLyrics: (nextLyrics: LyricData | null) => void;
-    setStatusMsg: SetState<StatusMessage | null>;
     restoreCachedThemeForSong?: (songId: ThemeCacheSongKey | SongResult, options?: {
         allowLastUsedFallback?: boolean;
         preserveCurrentOnMiss?: boolean;
@@ -70,12 +69,8 @@ export const restorePlaybackSourceForSong = async (
         userId,
         blobUrlRef,
         currentOnlineAudioUrlFetchedAtRef,
-        setCurrentSong,
         setPlayQueue,
-        setCachedCoverUrl,
-        setAudioSrc,
         setLyrics,
-        setStatusMsg,
         restoreCachedThemeForSong,
         persistLastPlaybackCache,
         queue,
@@ -103,7 +98,8 @@ export const restorePlaybackSourceForSong = async (
         if (serverSong?.replayGain) {
             navidromeSongToRestore.navidromeData.replayGain = serverSong.replayGain;
         }
-        setAudioSrc(navidromeApi.getStreamUrl(config, navidromeId));
+        const restoredStreamUrl = navidromeApi.getStreamUrl(config, navidromeId);
+        setAudioSrc(restoredStreamUrl);
         const restoredCoverUrl = getSongCoverUrl(song) || navidromeSongToRestore.navidromeData.coverArtUrl;
         if (restoredCoverUrl) {
             setCachedCoverUrl(restoredCoverUrl);
@@ -120,7 +116,13 @@ export const restorePlaybackSourceForSong = async (
             setLyrics(restoredLyrics);
         }
 
-        const restoredSong = { ...song, navidromeData: navidromeSongToRestore } as SongResult;
+        const restoredCarrier = { ...song, navidromeData: navidromeSongToRestore } as SongResult;
+        // Recomputed rather than carried over from the persisted object: without a revision every
+        // representation lookup misses, and a restored session re-transcodes what is already cached.
+        const restoredSong = {
+            ...restoredCarrier,
+            playbackSourceRevision: buildNavidromeSourceRevision(restoredCarrier, restoredStreamUrl),
+        } as SongResult;
         setCurrentSong(restoredSong);
         void persistLastPlaybackCache?.(restoredSong, queue && queue.length > 0 ? queue : [restoredSong]);
         return true;

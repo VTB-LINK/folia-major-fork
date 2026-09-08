@@ -8,6 +8,7 @@ import type {
     OmniHistoryEntry,
     OmniLyricsResult,
     OmniPage,
+    OmniPlaybackReport,
     OmniProviderCapabilities,
     OmniProviderId,
     OmniProviderSummary,
@@ -24,6 +25,7 @@ import { resolveProviderLyricsChorus } from '../../utils/lyrics/chorusResolver';
 import { OnlineProviderError } from '../../types/onlineMusic';
 import { useOnlineProviderAccountStore } from '../../stores/useOnlineProviderAccountStore';
 import { getPlaybackSourceRef } from '../../utils/appPlaybackGuards';
+import { saveSongReplayGain } from './resourceCache';
 import {
     getOnlineMusicProvider,
     getOnlineMusicProviderForSong,
@@ -406,7 +408,26 @@ export const omni = {
     },
 
     async getAudioSource(song: SongResult, quality: AudioQualityPreference): Promise<OmniAudioSource | null> {
-        return providerForSong(song).playback?.getAudioSource(song, quality) ?? null;
+        const source = await (providerForSong(song).playback?.getAudioSource(song, quality) ?? null);
+        // Written here rather than at either caller because this is the only moment a provider ever
+        // states a track's ReplayGain, and both callers - the prefetch pass and playback itself -
+        // may be the one that happens to see it. See getCachedSongReplayGain for what is lost
+        // otherwise: the URL is never fetched again once the bytes are cached.
+        if (source?.replayGain) void saveSongReplayGain(song, source.replayGain);
+        return source;
+    },
+
+    // Asked once per track, including for local and Navidrome songs, so an unsupported source is a
+    // plain `false` rather than the throw `providerForSong` would raise.
+    canReportPlayback(song: SongResult): boolean {
+        const provider = getOnlineMusicProviderForSong(song);
+        return providerSupports(provider, 'playbackReports') && Boolean(provider?.playbackReports);
+    },
+
+    async reportPlayback(song: SongResult, report: OmniPlaybackReport): Promise<void> {
+        const provider = providerForSong(song);
+        if (!provider.playbackReports) return unsupported(provider.id, 'playbackReports');
+        await provider.playbackReports.reportPlayback(song, report);
     },
 
     async getLyrics(song: SongResult, context?: { userId?: MediaId | null }): Promise<OmniLyricsResult> {

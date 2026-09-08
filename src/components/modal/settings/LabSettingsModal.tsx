@@ -1,12 +1,19 @@
 import React, { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, ChevronLeft, ChevronRight, ChevronsLeftRight, Cpu, GamepadDirectional, Mic, Monitor, Moon, PlayCircle, RotateCcw, Settings2 } from 'lucide-react';
+import { Boxes, Check, ChevronLeft, ChevronsLeftRight, Cpu, GamepadDirectional, Mic, Monitor, Moon, Play, PlayCircle, RotateCcw, Settings2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import type { Theme, VisualizerFrameRate } from '../../../types';
-import { useSettingsUiStore } from '../../../stores/useSettingsUiStore';
 import { VISUALIZER_FRAME_RATE_OPTIONS } from '../../../utils/frameRateLimiter';
 import ThemedDialog from '../../shared/ThemedDialog';
+import { SettingsAnchor } from './navigation/SettingsAnchorContext';
+import SettingsSectionHeading from './navigation/SettingsSectionHeading';
+import { useAudioSettingsStore } from '../../../stores/useAudioSettingsStore';
+import { useVisualizerSettingsStore } from '../../../stores/useVisualizerSettingsStore';
+import { useTypographySettingsStore } from '../../../stores/useTypographySettingsStore';
+import { usePlayerChromeSettingsStore } from '../../../stores/usePlayerChromeSettingsStore';
+import { useThemeSettingsStore } from '../../../stores/useThemeSettingsStore';
+import { useDesktopSettingsStore } from '../../../stores/useDesktopSettingsStore';
 
 // src/components/modal/settings/LabSettingsModal.tsx
 // Experimental settings subview kept outside SettingsModal to avoid another giant inline panel.
@@ -14,7 +21,6 @@ import ThemedDialog from '../../shared/ThemedDialog';
 type LabSettingsModalProps = {
     isOpen: boolean;
     onClose: () => void;
-    onOpenLyricFilterSettings: () => void;
     theme?: Theme;
     voiceInputPause?: {
         enabled: boolean;
@@ -36,7 +42,6 @@ const getFrameRateLabel = (frameRate: VisualizerFrameRate) => `${frameRate} FPS`
 const LabSettingsModal: React.FC<LabSettingsModalProps> = ({
     isOpen,
     onClose,
-    onOpenLyricFilterSettings,
     theme,
     voiceInputPause,
     embedded,
@@ -45,64 +50,77 @@ const LabSettingsModal: React.FC<LabSettingsModalProps> = ({
     const isMouseDownOnOverlayRef = useRef(false);
     const [isNativeBlurNoticeOpen, setIsNativeBlurNoticeOpen] = useState(false);
     const {
+        onToggleHideTaskbarIcon,
+        onToggleMinimizeToTray,
+        onToggleOpenPlayerOnLaunch,
+        preventDisplaySleepDuringPlayback,
+        onTogglePreventDisplaySleepDuringPlayback,
+        modSystemEnabled,
+        onToggleModSystem,
+    } = useDesktopSettingsStore(useShallow(state => ({
+        onToggleHideTaskbarIcon: state.handleToggleHideTaskbarIcon,
+        onToggleMinimizeToTray: state.handleToggleMinimizeToTray,
+        onToggleOpenPlayerOnLaunch: state.handleToggleOpenPlayerOnLaunch,
+        preventDisplaySleepDuringPlayback: state.preventDisplaySleepDuringPlayback,
+        onTogglePreventDisplaySleepDuringPlayback: state.handleTogglePreventDisplaySleepDuringPlayback,
+        modSystemEnabled: state.modSystemEnabled,
+        onToggleModSystem: state.handleToggleModSystem,
+    })));
+    const {
         disableHomeDynamicBackground,
+        isDaylight,
+        staticMode,
+        onToggleDisableHomeDynamicBackground,
+        onToggleStaticMode,
+    } = useThemeSettingsStore(useShallow(state => ({
+        disableHomeDynamicBackground: state.disableHomeDynamicBackground,
+        isDaylight: state.isDaylight,
+        staticMode: state.staticMode,
+        onToggleDisableHomeDynamicBackground: state.handleToggleDisableHomeDynamicBackground,
+        onToggleStaticMode: state.handleToggleStaticMode,
+    })));
+    const {
         hidePlayerProgressBar,
         hidePlayerRightPanelButton,
         alwaysShowPlayerBackButton,
         alwaysShowTrackSwitchButtons,
         alwaysShowMainWindowTitlebar,
-        hidePlayerTranslationSubtitle,
-        isDaylight,
         showOpenPanelCloseButton,
-        staticMode,
-        visualizerFrameRate,
-        onToggleDisableHomeDynamicBackground,
+        enablePlayerPageNativeBlur,
         onToggleHidePlayerProgressBar,
         onToggleHidePlayerRightPanelButton,
         onToggleAlwaysShowPlayerBackButton,
         onToggleAlwaysShowTrackSwitchButtons,
         onToggleAlwaysShowMainWindowTitlebar,
-        onToggleHidePlayerTranslationSubtitle,
-        onToggleHideTaskbarIcon,
-        onToggleMinimizeToTray,
         onToggleOpenPanelCloseButton,
-        onToggleOpenPlayerOnLaunch,
-        onToggleStaticMode,
-        onVisualizerFrameRateChange,
-        enablePlayerPageNativeBlur,
         onTogglePlayerPageNativeBlur,
-        preventDisplaySleepDuringPlayback,
-        onTogglePreventDisplaySleepDuringPlayback,
-    } = useSettingsUiStore(useShallow(state => ({
-        disableHomeDynamicBackground: state.disableHomeDynamicBackground,
+    } = usePlayerChromeSettingsStore(useShallow(state => ({
         hidePlayerProgressBar: state.hidePlayerProgressBar,
         hidePlayerRightPanelButton: state.hidePlayerRightPanelButton,
         alwaysShowPlayerBackButton: state.alwaysShowPlayerBackButton,
         alwaysShowTrackSwitchButtons: state.alwaysShowTrackSwitchButtons,
         alwaysShowMainWindowTitlebar: state.alwaysShowMainWindowTitlebar,
-        hidePlayerTranslationSubtitle: state.hidePlayerTranslationSubtitle,
-        isDaylight: state.isDaylight,
         showOpenPanelCloseButton: state.showOpenPanelCloseButton,
-        staticMode: state.staticMode,
-        visualizerFrameRate: state.visualizerFrameRate,
         enablePlayerPageNativeBlur: state.enablePlayerPageNativeBlur,
-        onToggleDisableHomeDynamicBackground: state.handleToggleDisableHomeDynamicBackground,
         onToggleHidePlayerProgressBar: state.handleToggleHidePlayerProgressBar,
         onToggleHidePlayerRightPanelButton: state.handleToggleHidePlayerRightPanelButton,
         onToggleAlwaysShowPlayerBackButton: state.handleToggleAlwaysShowPlayerBackButton,
         onToggleAlwaysShowTrackSwitchButtons: state.handleToggleAlwaysShowTrackSwitchButtons,
         onToggleAlwaysShowMainWindowTitlebar: state.handleToggleAlwaysShowMainWindowTitlebar,
-        onToggleHidePlayerTranslationSubtitle: state.handleToggleHidePlayerTranslationSubtitle,
-        onToggleHideTaskbarIcon: state.handleToggleHideTaskbarIcon,
-        onToggleMinimizeToTray: state.handleToggleMinimizeToTray,
         onToggleOpenPanelCloseButton: state.handleToggleOpenPanelCloseButton,
-        onToggleOpenPlayerOnLaunch: state.handleToggleOpenPlayerOnLaunch,
-        onToggleStaticMode: state.handleToggleStaticMode,
-        onVisualizerFrameRateChange: state.handleSetVisualizerFrameRate,
         onTogglePlayerPageNativeBlur: state.handleTogglePlayerPageNativeBlur,
-        preventDisplaySleepDuringPlayback: state.preventDisplaySleepDuringPlayback,
-        onTogglePreventDisplaySleepDuringPlayback: state.handleTogglePreventDisplaySleepDuringPlayback,
     })));
+    const {
+        hidePlayerTranslationSubtitle,
+        onToggleHidePlayerTranslationSubtitle,
+    } = useTypographySettingsStore(useShallow(state => ({
+        hidePlayerTranslationSubtitle: state.hidePlayerTranslationSubtitle,
+        onToggleHidePlayerTranslationSubtitle: state.handleToggleHidePlayerTranslationSubtitle,
+    })));
+    const autoPlayOnLaunch = useAudioSettingsStore(state => state.autoPlayOnLaunch);
+    const onToggleAutoPlayOnLaunch = useAudioSettingsStore(state => state.handleToggleAutoPlayOnLaunch);
+    const visualizerFrameRate = useVisualizerSettingsStore(state => state.visualizerFrameRate);
+    const onVisualizerFrameRateChange = useVisualizerSettingsStore(state => state.handleSetVisualizerFrameRate);
     const borderColor = isDaylight ? 'border-zinc-300/70' : 'border-white/10';
     const overlayBackground = isDaylight ? 'rgba(0,0,0,0.32)' : 'rgba(0,0,0,0.5)';
     const subviewPanelBg = isDaylight ? 'bg-zinc-200' : 'bg-zinc-900';
@@ -173,14 +191,8 @@ const LabSettingsModal: React.FC<LabSettingsModalProps> = ({
         <>
             <div className={embedded ? "space-y-4" : "flex-1 overflow-y-auto custom-scrollbar px-4 py-5 sm:px-6 relative z-10"}>
             <div className={embedded ? "space-y-4" : "space-y-4"}>
-                <div className="pt-1">
-                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {t('options.labPerformanceSection')}
-                    </div>
-                    <div className="mt-1 text-xs opacity-50" style={{ color: 'var(--text-secondary)' }}>
-                        {t('options.labPerformanceSectionDesc')}
-                    </div>
-                </div>
+                <SettingsAnchor anchorId="labPerformance" label={t('options.labPerformanceSection')} className="space-y-4">
+                    <SettingsSectionHeading icon={Cpu} label={t('options.labPerformanceSection')} />
                 <div className={`p-4 rounded-xl border flex items-center justify-between gap-4 ${settingsCardClass}`}>
                                     <div className="space-y-1">
                                         <div className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
@@ -257,14 +269,10 @@ const LabSettingsModal: React.FC<LabSettingsModalProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="border-t border-white/10 pt-5">
-                                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                                        {t('options.labPlayerUiSection')}
-                                    </div>
-                                    <div className="mt-1 text-xs opacity-50" style={{ color: 'var(--text-secondary)' }}>
-                                        {t('options.labPlayerUiSectionDesc')}
-                                    </div>
-                                </div>
+                </SettingsAnchor>
+
+                <SettingsAnchor anchorId="labPlayerUi" label={t('options.labPlayerUiSection')} className="space-y-4">
+                    <SettingsSectionHeading icon={Settings2} label={t('options.labPlayerUiSection')} divider />
 
                                 <div className={`p-4 rounded-xl border space-y-3 ${settingsCardClass}`}>
                                     <div className="space-y-1">
@@ -352,13 +360,25 @@ const LabSettingsModal: React.FC<LabSettingsModalProps> = ({
                                     {renderToggle(alwaysShowTrackSwitchButtons, () => onToggleAlwaysShowTrackSwitchButtons(!alwaysShowTrackSwitchButtons))}
                                 </div>
 
-                                <div className="border-t border-white/10 pt-5">
-                                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                                        {t('options.labWindowAndToolsSection')}
+                </SettingsAnchor>
+
+                <SettingsAnchor anchorId="labWindowAndTools" label={t('options.labWindowAndToolsSection')} className="space-y-4">
+                    <SettingsSectionHeading icon={Boxes} label={t('options.labWindowAndToolsSection')} divider />
+
+                                <div className={`p-4 rounded-xl border flex items-center justify-between gap-4 ${settingsCardClass}`}>
+                                    <div className="space-y-1">
+                                        <div className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                                            <Play size={14} />
+                                            {t('options.autoPlayOnLaunch')}
+                                        </div>
+                                        <div className="text-xs opacity-50 max-w-[360px]" style={{ color: 'var(--text-secondary)' }}>
+                                            {t('options.autoPlayOnLaunchDesc')}
+                                        </div>
+                                        <div className="text-[11px] opacity-40 max-w-[360px]" style={{ color: 'var(--text-secondary)' }}>
+                                            {t('options.autoPlayOnLaunchDescSub')}
+                                        </div>
                                     </div>
-                                    <div className="mt-1 text-xs opacity-50" style={{ color: 'var(--text-secondary)' }}>
-                                        {t('options.labWindowAndToolsSectionDesc')}
-                                    </div>
+                                    {renderToggle(autoPlayOnLaunch, () => onToggleAutoPlayOnLaunch(!autoPlayOnLaunch))}
                                 </div>
 
                                 <div className={`p-4 rounded-xl border flex items-center justify-between gap-4 ${settingsCardClass}`}>
@@ -389,6 +409,33 @@ const LabSettingsModal: React.FC<LabSettingsModalProps> = ({
                                     </div>
                                 )}
 
+                                {isElectron && (
+                                    <div className={`p-4 rounded-xl border flex items-center justify-between gap-4 ${settingsCardClass}`}>
+                                        <div className="space-y-1">
+                                            <div className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                                                <Boxes size={14} />
+                                                {t('options.enableModSystem')}
+                                                <span
+                                                    className={`px-1.5 py-0.5 rounded text-[10px] font-normal border ${
+                                                        isDaylight
+                                                            ? 'border-amber-500/30 bg-amber-500/10 text-amber-800'
+                                                            : 'border-amber-400/25 bg-amber-400/10 text-amber-200'
+                                                    }`}
+                                                >
+                                                    {t('mods.experimental')}
+                                                </span>
+                                            </div>
+                                            <div className="text-xs opacity-50 max-w-[360px]" style={{ color: 'var(--text-secondary)' }}>
+                                                {t('options.enableModSystemDesc')}
+                                            </div>
+                                            <div className="text-[11px] opacity-40 max-w-[360px]" style={{ color: 'var(--text-secondary)' }}>
+                                                {t('options.enableModSystemDescSub')}
+                                            </div>
+                                        </div>
+                                        {renderToggle(modSystemEnabled, () => onToggleModSystem(!modSystemEnabled))}
+                                    </div>
+                                )}
+
                                 {!isLinux && (
                                     <div className={`flex items-center justify-between p-4 rounded-xl border transition-colors hover:bg-white/8 ${settingsCardInteractiveClass}`} onClick={handleNativeBlurToggle}>
                                         <div className="flex flex-col pr-8">
@@ -402,24 +449,6 @@ const LabSettingsModal: React.FC<LabSettingsModalProps> = ({
                                         {renderToggle(enablePlayerPageNativeBlur, handleNativeBlurToggle)}
                                     </div>
                                 )}
-
-                                <button
-                                    type="button"
-                                    onClick={onOpenLyricFilterSettings}
-                                    className={`w-full p-4 rounded-xl border transition-colors hover:bg-white/8 text-left ${settingsCardInteractiveClass}`}
-                                >
-                                    <div className="flex items-center justify-between gap-4">
-                                        <div className="space-y-1">
-                                            <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                                                {t('options.lyricFilterRegex')}
-                                            </div>
-                                            <div className="text-xs opacity-50 max-w-[360px]" style={{ color: 'var(--text-secondary)' }}>
-                                                {t('options.lyricFilterRegexDesc')}
-                                            </div>
-                                        </div>
-                                        <ChevronRight size={18} className="shrink-0 opacity-60" style={{ color: 'var(--text-primary)' }} />
-                                    </div>
-                                </button>
 
                                 {voiceInputPause?.supported && (
                                     <div className={`flex items-center justify-between p-4 rounded-xl border transition-colors hover:bg-white/8 ${settingsCardInteractiveClass}`} onClick={voiceInputPause.onToggle}>
@@ -435,6 +464,7 @@ const LabSettingsModal: React.FC<LabSettingsModalProps> = ({
                                         {renderToggle(voiceInputPause.enabled, voiceInputPause.onToggle)}
                                     </div>
                                 )}
+                </SettingsAnchor>
             </div>
             </div>
             <ThemedDialog

@@ -2,6 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { type ConfigEnv, type UserConfig, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
+import { commandPinyinPlugin } from './dev/pinyin/commandPinyinPlugin.mjs';
 import { VitePWA } from 'vite-plugin-pwa';
 import { execSync } from 'child_process';
 import fs from 'fs';
@@ -200,6 +201,7 @@ export default async function viteConfig(_config: ConfigEnv): Promise<UserConfig
         input: {
           main: 'index.html',
           stageClient: 'stage-client.html',
+          modExport: 'mod-export.html',
         },
         output: {
           // three.js is a large dependency used only by the diorama 3D visualizer. Split it into its
@@ -214,9 +216,18 @@ export default async function viteConfig(_config: ConfigEnv): Promise<UserConfig
     server: {
       port: 3000,
       host: '0.0.0.0',
+      watch: {
+        // Build output and model weights are not sources, and watching them breaks packaging: the
+        // watcher opens a handle on every directory it finds, and electron-builder packages by
+        // extracting Electron into release/win-unpacked.tmp and renaming it to release/win-unpacked.
+        // On Windows that rename fails with EPERM while anything holds the directory - so a dev
+        // server left running in another terminal kills every `npm run build:electron`.
+        ignored: ['**/release/**', '**/models/**'],
+      },
     },
     plugins: [
       devLyricProxyPlugin(),
+      commandPinyinPlugin(),
       react(),
       VitePWA({
         registerType: 'autoUpdate',

@@ -324,6 +324,7 @@ const decompressLatentBackground = (o: any): any => ({
 const compressMonet = (t: any): any => ({
     kce: t.keywordColoringEnabled,
     msd: t.showDescription,
+    mav: t.showAudioVisualization,
     mas: t.audioStyle,
     mfs: t.fontScale,
     mps: t.portraitSource,
@@ -334,6 +335,7 @@ const compressMonet = (t: any): any => ({
 const decompressMonet = (o: any): any => ({
     keywordColoringEnabled: o.kce !== undefined ? o.kce : DEFAULT_MONET_TUNING.keywordColoringEnabled,
     showDescription: o.msd !== undefined ? o.msd : DEFAULT_MONET_TUNING.showDescription,
+    showAudioVisualization: o.mav !== undefined ? o.mav : DEFAULT_MONET_TUNING.showAudioVisualization,
     audioStyle: o.mas || DEFAULT_MONET_TUNING.audioStyle,
     fontScale: o.mfs !== undefined ? o.mfs : DEFAULT_MONET_TUNING.fontScale,
     portraitSource: o.mps || DEFAULT_MONET_TUNING.portraitSource,
@@ -403,6 +405,7 @@ const decompressSonnet = (o: any): any => ({
 const compressTempera = (t: any): any => ({
     ci: t.cameraIntensity,
     gm: t.glyphMotion,
+    wll: t.wholeLineLyrics,
     gss: t.glyphSettleStretch,
     cm: t.colorMode,
     sb: t.showBlocks,
@@ -424,6 +427,7 @@ const compressTempera = (t: any): any => ({
 const decompressTempera = (o: any): any => ({
     cameraIntensity: o.ci !== undefined ? o.ci : DEFAULT_TEMPERA_TUNING.cameraIntensity,
     glyphMotion: o.gm !== undefined ? o.gm : DEFAULT_TEMPERA_TUNING.glyphMotion,
+    wholeLineLyrics: o.wll !== undefined ? o.wll : DEFAULT_TEMPERA_TUNING.wholeLineLyrics,
     glyphSettleStretch: o.gss !== undefined ? o.gss : DEFAULT_TEMPERA_TUNING.glyphSettleStretch,
     colorMode: o.cm !== undefined ? o.cm : DEFAULT_TEMPERA_TUNING.colorMode,
     showBlocks: o.sb !== undefined ? o.sb : DEFAULT_TEMPERA_TUNING.showBlocks,
@@ -466,6 +470,7 @@ export const compressConfig = (config: any): string => {
     if (config.showSubtitleTranslation !== undefined) minified.sst = config.showSubtitleTranslation;
     if (config.subtitleContentMode !== undefined) minified.scm = config.subtitleContentMode;
     if (config.subtitleOverlayBackground !== undefined) minified.sob = config.subtitleOverlayBackground;
+    if (config.subtitleUpcomingLyricsBlur !== undefined) minified.sulb = config.subtitleUpcomingLyricsBlur;
     if (config.subtitleOverlayOpacity !== undefined) minified.soo = config.subtitleOverlayOpacity;
     if (config.showHarmonySubtitle !== undefined) minified.shs = config.showHarmonySubtitle;
     if (config.harmonySubtitleBackground !== undefined) minified.hsb = config.harmonySubtitleBackground;
@@ -503,6 +508,9 @@ export const compressConfig = (config: any): string => {
     if (config.songThemeAutoGenerateEnabled !== undefined) minified.stag = config.songThemeAutoGenerateEnabled;
     if (config.themeGenerationSource !== undefined) minified.tgs = config.themeGenerationSource;
     if (config.followSystemTheme !== undefined) minified.fst = config.followSystemTheme;
+    if (config.stageTrackPillMode !== undefined) minified.stp = config.stageTrackPillMode;
+    if (config.stageTrackPillTimeoutSec !== undefined) minified.stpt = config.stageTrackPillTimeoutSec;
+    if (config.stageTrackPillOnHome !== undefined) minified.stph = config.stageTrackPillOnHome;
 
     const jsonStr = JSON.stringify(minified);
     const bytes = new TextEncoder().encode(jsonStr);
@@ -557,7 +565,13 @@ export const decompressConfig = (str: string): any => {
         || parsed.sfi !== undefined
         || parsed.pdt !== undefined
         || parsed.snt !== undefined
-        || parsed.fst !== undefined;
+        || parsed.fst !== undefined
+        // The now playing card's three keys. Listed like the rest so a hand-written JSON that only
+        // carries the card is still recognised as the minified shape rather than falling through to
+        // the long-name branch, where none of them is a valid key.
+        || parsed.stp !== undefined
+        || parsed.stpt !== undefined
+        || parsed.stph !== undefined;
     if (isMinified) {
         const decompressed: any = {};
         if (parsed.t) {
@@ -579,6 +593,7 @@ export const decompressConfig = (str: string): any => {
         if (parsed.sst !== undefined) decompressed.showSubtitleTranslation = parsed.sst;
         if (parsed.scm !== undefined) decompressed.subtitleContentMode = parsed.scm;
         if (parsed.sob !== undefined) decompressed.subtitleOverlayBackground = parsed.sob;
+        if (parsed.sulb !== undefined) decompressed.subtitleUpcomingLyricsBlur = parsed.sulb;
         if (parsed.soo !== undefined) decompressed.subtitleOverlayOpacity = parsed.soo;
         if (parsed.shs !== undefined) decompressed.showHarmonySubtitle = parsed.shs;
         if (parsed.hsb !== undefined) decompressed.harmonySubtitleBackground = parsed.hsb;
@@ -616,6 +631,9 @@ export const decompressConfig = (str: string): any => {
         if (parsed.stag !== undefined) decompressed.songThemeAutoGenerateEnabled = parsed.stag;
         if (parsed.tgs !== undefined) decompressed.themeGenerationSource = parsed.tgs;
         if (parsed.fst !== undefined) decompressed.followSystemTheme = parsed.fst;
+        if (parsed.stp !== undefined) decompressed.stageTrackPillMode = parsed.stp;
+        if (parsed.stpt !== undefined) decompressed.stageTrackPillTimeoutSec = parsed.stpt;
+        if (parsed.stph !== undefined) decompressed.stageTrackPillOnHome = parsed.stph;
 
         return decompressed;
     } else {
@@ -623,7 +641,7 @@ export const decompressConfig = (str: string): any => {
             'theme', 'visualizerMode', 'randomVisualizerModePerSong', 'visualizerBackgroundMode', 'backgroundOpacity',
             'useCoverColorBg', 'disableVisualizerGeometricBackground', 'disableVisualizerVignette', 'staticMode',
             'visualizerOpacity', 'hidePlayerTranslationSubtitle', 'showSubtitleTranslation', 'subtitleContentMode',
-            'subtitleOverlayBackground', 'subtitleOverlayOpacity',
+            'subtitleOverlayBackground', 'subtitleUpcomingLyricsBlur', 'subtitleOverlayOpacity',
             'showHarmonySubtitle', 'harmonySubtitleBackground',
             'lyricsFontStyle', 'lyricsFontScale', 'lyricsFontWeight', 'lyricsFontFallbackFamilies',
             'subtitleFontInheritsLyrics', 'subtitleFontScale', 'subtitleFontStyle', 'subtitleFontWeight', 'subtitleFontFamily',
@@ -633,6 +651,7 @@ export const decompressConfig = (str: string): any => {
             'pendoloTuning', 'sonnetTuning', 'temperaTuning',
             'urlBackgroundList', 'urlBackgroundSelectedId',
             'songThemeAutoSwitchEnabled', 'songThemeAutoGenerateEnabled', 'themeGenerationSource', 'followSystemTheme',
+            'stageTrackPillMode', 'stageTrackPillTimeoutSec', 'stageTrackPillOnHome',
         ];
         const hasValidKey = validKeys.some(k => parsed[k] !== undefined);
         if (!hasValidKey) {

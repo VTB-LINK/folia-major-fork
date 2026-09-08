@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Theme } from '../../../types';
-import { useSettingsUiStore } from '../../../stores/useSettingsUiStore';
+import { usePlayerChromeSettingsStore } from '../../../stores/usePlayerChromeSettingsStore';
+import { useTypographySettingsStore } from '../../../stores/useTypographySettingsStore';
+import { useStageSettingsStore } from '../../../stores/useStageSettingsStore';
+import { setStatusMessage } from '../../../stores/useStatusMessageStore';
 import { ObsCopyUrlButton } from '../../shared/ObsCopyUrlButton';
 import { ObsCopyCssButton } from '../../shared/ObsCopyCssButton';
-import { buildCurrentObsUrl } from '../../../utils/currentObsUrl';
-import { resolveWebObsTarget, selectWebObsSource } from '../../../utils/webObsTarget';
-import { resolveObsCopyHintKey } from '../../../utils/visualSettingsConfig';
+import { buildCurrentObsUrl } from '../../../services/obs/currentObsUrl';
+import { resolveWebObsTarget, selectWebObsSource } from '../../../services/obs/webObsTarget';
+import { resolveObsCopyHintKey } from '../../../services/obs/visualSettingsConfig';
 
 // src/components/panelTab/controls/ForkPlayerExtras.tsx
 // FORK-ONLY. The player-panel additions upstream does not carry: five quick toggles that are
@@ -51,22 +54,21 @@ interface ForkPlayerExtrasProps {
 
 const ForkPlayerExtras: React.FC<ForkPlayerExtrasProps> = ({ theme, isDaylight }) => {
     const { t } = useTranslation();
-    const statusSetter = useSettingsUiStore(state => state.statusSetter);
-    const transparentPlayerBackground = useSettingsUiStore(state => state.transparentPlayerBackground);
-    const toggleTransparentPlayerBackground = useSettingsUiStore(state => state.handleToggleTransparentPlayerBackground);
-    const autoHidePlayerChrome = useSettingsUiStore(state => state.autoHidePlayerChrome);
-    const toggleAutoHidePlayerChrome = useSettingsUiStore(state => state.handleToggleAutoHidePlayerChrome);
-    const hidePlayerProgressBar = useSettingsUiStore(state => state.hidePlayerProgressBar);
-    const toggleHidePlayerProgressBar = useSettingsUiStore(state => state.handleToggleHidePlayerProgressBar);
-    const hidePlayerTranslationSubtitle = useSettingsUiStore(state => state.hidePlayerTranslationSubtitle);
-    const toggleHidePlayerTranslationSubtitle = useSettingsUiStore(state => state.handleToggleHidePlayerTranslationSubtitle);
-    const showHarmonySubtitle = useSettingsUiStore(state => state.showHarmonySubtitle);
-    const toggleShowHarmonySubtitle = useSettingsUiStore(state => state.handleToggleShowHarmonySubtitle);
+    const transparentPlayerBackground = usePlayerChromeSettingsStore(state => state.transparentPlayerBackground);
+    const toggleTransparentPlayerBackground = usePlayerChromeSettingsStore(state => state.handleToggleTransparentPlayerBackground);
+    const autoHidePlayerChrome = usePlayerChromeSettingsStore(state => state.autoHidePlayerChrome);
+    const toggleAutoHidePlayerChrome = usePlayerChromeSettingsStore(state => state.handleToggleAutoHidePlayerChrome);
+    const hidePlayerProgressBar = usePlayerChromeSettingsStore(state => state.hidePlayerProgressBar);
+    const toggleHidePlayerProgressBar = usePlayerChromeSettingsStore(state => state.handleToggleHidePlayerProgressBar);
+    const hidePlayerTranslationSubtitle = useTypographySettingsStore(state => state.hidePlayerTranslationSubtitle);
+    const toggleHidePlayerTranslationSubtitle = useTypographySettingsStore(state => state.handleToggleHidePlayerTranslationSubtitle);
+    const showHarmonySubtitle = useTypographySettingsStore(state => state.showHarmonySubtitle);
+    const toggleShowHarmonySubtitle = useTypographySettingsStore(state => state.handleToggleShowHarmonySubtitle);
     const toggleOffClass = isDaylight ? 'bg-black/10' : 'bg-white/10';
 
     // OBS static URL is a web-deploy concept, so these copy buttons are web-only.
     const isElectron = typeof window !== 'undefined' && Boolean((window as { electron?: unknown }).electron);
-    const webObsSource = useSettingsUiStore(selectWebObsSource);
+    const webObsSource = useStageSettingsStore(selectWebObsSource);
     const [obsUrlCopied, setObsUrlCopied] = useState(false);
     const handleCopyObsUrl = async () => {
         const target = resolveWebObsTarget();
@@ -77,12 +79,12 @@ const ForkPlayerExtras: React.FC<ForkPlayerExtrasProps> = ({ theme, isDaylight }
             setObsUrlCopied(true);
             window.setTimeout(() => setObsUrlCopied(false), 1600);
             const hint = resolveObsCopyHintKey();
-            statusSetter?.({ type: hint.type, text: t(hint.key) });
+            setStatusMessage({ type: hint.type, text: t(hint.key) });
         } catch (err) {
             // The URL is built asynchronously, so a browser that requires the write to stay inside the
             // click's own task can reject here. Say so instead of leaving the button inert.
             console.error('Failed to copy OBS URL:', err);
-            statusSetter?.({ type: 'error', text: t('status.copyFailed') });
+            setStatusMessage({ type: 'error', text: t('status.copyFailed') });
         }
     };
 

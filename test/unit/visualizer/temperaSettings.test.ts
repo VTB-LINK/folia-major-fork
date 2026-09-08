@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_TEMPERA_LAYER_IMAGE, DEFAULT_TEMPERA_TUNING, TEMPERA_MAX_LAYER_IMAGES } from '@/types';
-import { useSettingsUiStore } from '@/stores/useSettingsUiStore';
+import { resolveStoredTemperaTuning } from '@/stores/visualizerSettingsPersistence';
 import { TemperaPixiRuntime } from '@/components/visualizer/tempera/createTemperaPixiRuntime';
+import { useVisualizerSettingsStore } from '@/stores/useVisualizerSettingsStore';
 
 // test/unit/visualizer/temperaSettings.test.ts
 // Verifies the Tempera canvas-image pool at the store boundary. Those records arrive from
@@ -23,8 +24,8 @@ const createLocalStorageMock = (): Storage => {
 };
 
 const setImages = (images: unknown) => {
-    useSettingsUiStore.getState().handleSetTemperaTuning({ layerImages: images as never });
-    return useSettingsUiStore.getState().temperaTuning.layerImages;
+    useVisualizerSettingsStore.getState().handleSetTemperaTuning({ layerImages: images as never });
+    return useVisualizerSettingsStore.getState().temperaTuning.layerImages;
 };
 
 describe('Tempera canvas images', () => {
@@ -34,7 +35,7 @@ describe('Tempera canvas images', () => {
         storage = createLocalStorageMock();
         vi.stubGlobal('localStorage', storage);
         vi.stubGlobal('window', { localStorage: storage });
-        useSettingsUiStore.setState({ temperaTuning: { ...DEFAULT_TEMPERA_TUNING, layerImages: [] } });
+        useVisualizerSettingsStore.setState({ temperaTuning: { ...DEFAULT_TEMPERA_TUNING, layerImages: [] } });
     });
 
     afterEach(() => {
@@ -91,24 +92,72 @@ describe('Tempera canvas images', () => {
 });
 
 describe('Tempera live texture resolution', () => {
-    it('updates the mounted Pixi renderer when committed tuning changes', () => {
+    /**
+     * A mounted runtime reduced to what `setTuning` touches, sized like a real viewport - the
+     * resolution it lands on is a function of the host's dimensions, not of the setting alone.
+     */
+    const mountRuntime = (width: number, height: number) => {
         const renderer = { resolution: DEFAULT_TEMPERA_TUNING.textureResolution };
         const runtime = Object.create(TemperaPixiRuntime.prototype) as TemperaPixiRuntime;
         Object.assign(runtime, {
             destroyed: false,
             options: {
                 tuning: { ...DEFAULT_TEMPERA_TUNING },
+                host: { clientWidth: width, clientHeight: height },
                 paused: false,
             },
             app: { renderer },
             sceneCache: new Map(),
             activeParagraphIndex: -1,
+            // Left at 0, as before the first resize pass: the snap then measures the host
+            // itself, which is the fallback that keeps an early tuning change correct.
             lastWidth: 0,
             lastHeight: 0,
         });
+        return { runtime, renderer };
+    };
+
+    it('updates the mounted Pixi renderer when committed tuning changes', () => {
+        // 800x800 at 2.25 sits far from the next pool boundary down (1.28 would be a 43% cut),
+        // so the setting reaches the renderer untouched and this stays a test of the live path.
+        const { runtime, renderer } = mountRuntime(800, 800);
 
         runtime.setTuning({ ...DEFAULT_TEMPERA_TUNING, textureResolution: 2.25 });
 
         expect(renderer.resolution).toBe(2.25);
+    });
+
+    it('mounts at the snapped resolution, not the raw setting', () => {
+        // 781x850 at the default 1.5 rasterises into a 2048x2048 pool bucket it fills less than
+        // a third of; 1024/850 lands the same pass in 1024x1024 for 20% of the resolution.
+        const { runtime, renderer } = mountRuntime(781, 850);
+
+        runtime.setTuning({ ...DEFAULT_TEMPERA_TUNING });
+
+        expect(renderer.resolution).toBeCloseTo(1024 / 850, 6);
+    });
+});
+
+describe('Tempera lyric splitting setting', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it('defaults missing stored values to the existing split behavior', () => {
+        expect(resolveStoredTemperaTuning({}).wholeLineLyrics).toBe(false);
+    });
+
+    it('persists changes and returns to split behavior on reset', () => {
+        const storage = createLocalStorageMock();
+        vi.stubGlobal('localStorage', storage);
+        vi.stubGlobal('window', { localStorage: storage });
+        useVisualizerSettingsStore.setState({ temperaTuning: { ...DEFAULT_TEMPERA_TUNING } });
+
+        useVisualizerSettingsStore.getState().handleSetTemperaTuning({ wholeLineLyrics: true });
+        expect(useVisualizerSettingsStore.getState().temperaTuning.wholeLineLyrics).toBe(true);
+        expect(JSON.parse(storage.getItem('tempera_tuning') ?? '{}').wholeLineLyrics).toBe(true);
+
+        useVisualizerSettingsStore.getState().handleResetTemperaTuning();
+        expect(useVisualizerSettingsStore.getState().temperaTuning.wholeLineLyrics).toBe(false);
     });
 });

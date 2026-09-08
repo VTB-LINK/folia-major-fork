@@ -7,7 +7,7 @@ import type { VisualizerBackgroundConfig } from '../visualizer/backgrounds/defin
 import { findLatestActiveLineIndex } from '../../utils/appPlaybackHelpers';
 import { buildBuiltinDualTheme } from '../../hooks/themeControllerState';
 import { extractColors } from '../../utils/colorExtractor';
-import { readObsCustomCssAssets, type ObsCustomCssAssets } from '../../utils/obsCustomCss';
+import { readObsCustomCssAssets, type ObsCustomCssAssets } from '../../services/obs/obsCustomCss';
 import type { WebLyricSource } from '../../types/webLyricSource';
 import type { ObsWebAppearance } from '../../utils/obsWebAppearance';
 import { useObsAiTheme } from '../../hooks/useObsAiTheme';
@@ -250,6 +250,7 @@ const ObsWebSourceApp: React.FC<ObsWebSourceAppProps> = ({ source, appearance, o
                 lyricsFontScale={appearance.lyricsFontScale}
                 subtitleFontScale={appearance.subtitleFontScale}
                 subtitleOverlayBackground={appearance.subtitleOverlayBackground}
+                subtitleUpcomingLyricsBlur={appearance.subtitleUpcomingLyricsBlur}
                 subtitleOverlayOpacity={appearance.subtitleOverlayOpacity}
                 showHarmonySubtitle={appearance.showHarmonySubtitle}
                 harmonySubtitleBackground={appearance.harmonySubtitleBackground}

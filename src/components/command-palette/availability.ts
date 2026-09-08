@@ -1,6 +1,8 @@
+import type { CommandPaletteContext, CommandScope } from './types';
+
 // src/components/command-palette/availability.ts
-// Declarative platform gating for command palette entries, replacing the id switchboard that
-// used to live inside getAvailableCommandPaletteCommands.
+// Declarative platform and scope gating for command palette entries, replacing the id switchboard
+// that used to live inside getAvailableCommandPaletteCommands.
 
 // 'electron' matches any desktop build; the OS names imply desktop; 'web' means a browser
 // without the Electron bridge.
@@ -53,4 +55,33 @@ export const matchesCommandPlatform = (platform?: CommandPlatform[]): boolean =>
         }
         return runtime.isElectron && runtime.os === candidate;
     });
+};
+
+/**
+ * Whether the palette's surroundings are what a command declared it needs: the unified panel only
+ * exists on the player, the lattice commands need the lattice on screen, a filter only exists where
+ * something registered one, and the grid actions only exist while a track grid is on screen. They
+ * grey out elsewhere rather than executing into nothing.
+ *
+ * An absent context means "nobody is asking about a live app" (the registry contract test, the
+ * pinned-command picker), and every one of those callers wants the full list — same convention as
+ * the rest of the registry's gating.
+ */
+export const matchesCommandScope = (scope: CommandScope | undefined, context?: CommandPaletteContext): boolean => {
+    if (!scope || !context) {
+        return true;
+    }
+
+    switch (scope) {
+        case 'player-surface':
+            return context.scope.view === 'player';
+        case 'lattice':
+            return context.scope.view === 'lattice';
+        case 'filtering-surface':
+            return context.scope.filter !== null;
+        case 'grid-surface':
+            return context.scope.grid !== null;
+        default:
+            return true;
+    }
 };

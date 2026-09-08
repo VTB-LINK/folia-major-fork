@@ -153,7 +153,7 @@ vercel env pull .env.local
 | `GEMINI_API_KEY` | Gemini API Key | 使用 Gemini 时需要 |
 | `OPENAI_API_KEY` | OpenAI 兼容 API Key | 使用 OpenAI兼容接口 时需要 |
 | `OPENAI_API_URL` | OpenAI 兼容接口地址，可填 base URL 或完整 `chat/completions` 地址 | 使用 OpenAI兼容接口 时需要 |
-| `OPENAI_API_MODEL` | 模型名，例如 `gpt-4o`、`gpt-4.1-mini`、`deepseek-v4-flash` | 使用 OpenAI兼容接口 时需要 |
+| `OPENAI_API_MODEL` | 模型名，例如 `gpt-5.6-luna`、`gpt-4.1-mini`、`deepseek-v4-flash` | 使用 OpenAI兼容接口 时需要 |
 | `OPENAI_API_TEMPERATURE` | 温度，范围 `0`–`2`；留空或无效时默认使用 `0.7` | 否 |
 
 注意：部分模型对于温度参数有特殊要求，例如 `kimi-k3` 要求温度必须为 `1`。
@@ -212,7 +212,7 @@ VITE_NETEASE_API_BASE=http://localhost:3000
 VITE_AI_PROVIDER=openai
 OPENAI_API_KEY=your_api_key
 OPENAI_API_URL=https://api.openai.com/v1
-OPENAI_API_MODEL=gpt-4o
+OPENAI_API_MODEL=gpt-5.6-luna
 OPENAI_API_TEMPERATURE=0.7
 ```
 
@@ -235,6 +235,7 @@ vercel dev
 | `npm run dev:electron:dist` | 构建后以桌面模式运行 |
 | `npm run build:electron` | 打包桌面端应用 |
 | `npm run build:windowtolayer` | 单独构建 Linux 壁纸模式依赖的 `build/windowtolayer` |
+| `npm run build:wallpaper-helper` | 单独构建 Windows 壁纸模式依赖的 `build/folia-wallpaper-helper.exe`（非 Windows 主机为 no-op） |
 | `npm run stage:client` | 打开本地 Stage API 联调台 |
 
 所有 `dev:electron*` 脚本都会注入 `FOLIA_WINDOWTOLAYER_PATH=build/windowtolayer`，让开发运行也能找到壁纸模式所需的
@@ -253,6 +254,7 @@ vercel dev
 | visualizer 预览和设置面板 | `src/components/visualizer/VisPlayground.tsx`、`src/components/visualizer/VisPlaygroundSettingsPanel.tsx` |
 | visualizer 模式实现 | `src/components/visualizer/<mode>/*` |
 | 歌词解析和渲染提示 | `src/utils/lyrics/*` |
+| 智能过渡（混音过渡开关背后的全部实现） | `src/services/automix/*`，先读该目录的 `README.md` |
 | 本地音乐、Navidrome、网易云服务 | `src/services/*` |
 | 共享类型和默认 tuning | `src/types.ts` |
 
