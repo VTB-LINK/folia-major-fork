@@ -305,6 +305,7 @@ export default {
     "sleepTimerMinutesLabel": "Menit",
     "sleepTimerInputPlaceholder": "Masukkan menit, --on, atau --off",
     "latticePosterTintPlaceholder": "Sesuaikan kontrol di bawah",
+    "gridViewCardsPlaceholder": "Sesuaikan kontrol di bawah",
     "sleepTimerSetPreview": "Mulai timer {{minutes}} menit",
     "sleepTimerOffPreview": "Tekan Enter untuk membatalkan timer tidur",
     "sleepTimerUnknownOption": "Opsi tidak dikenal --{{option}}",
@@ -504,6 +505,9 @@ export default {
       "settings-toggle-transparent": { "title": "Alihkan transparansi", "description": "Alihkan latar belakang pemutar transparan" },
       "settings-toggle-daylight": { "title": "Alihkan terang/gelap", "description": "Alihkan mode siang/malam tema" },
       "settings-toggle-player-back-button": { "title": "Selalu tampilkan tombol kembali pemutar", "description": "Alihkan apakah tombol kembali tetap terlihat" },
+      "settings-gridview-cards": { "title": "Tampilan kartu grid", "description": "Sesuaikan sampul penuh serta seberapa jauh kartu grid menyusut dan memudar" },
+      "settings-toggle-gridview-full-bleed-cover": { "title": "Sampul grid penuh", "description": "Aktifkan atau matikan sampul yang memenuhi seluruh kartu grid" },
+      "settings-toggle-gridview-square-cards": { "title": "Kartu grid persegi", "description": "Aktifkan atau matikan bentuk persegi untuk kartu grid sampul penuh" },
       "settings-toggle-lattice-vignette": { "title": "Lattice vignette", "description": "Aktifkan atau matikan vignette tepi pada kolase antrean" },
       "settings-toggle-lattice-auto-focus": { "title": "Lattice fokus otomatis", "description": "Alihkan apakah kolase antrean mengikuti lagu yang diputar saat lagu berganti" },
       "lattice-poster-tint": { "title": "Lattice warna poster", "description": "Sesuaikan lapisan warna pada poster di luar fokus kolase antrean saat ini" },
@@ -1429,6 +1433,16 @@ export default {
     "latticePosterTintCustomColorDesc": "Ganti gradien dari tema dengan satu warna lapisan tetap.",
     "latticePosterTintColor": "Warna lapisan",
     "latticePosterTintIntensity": "Intensitas lapisan",
+    "gridViewCardSettings": "Kartu grid",
+    "gridViewFullBleedCover": "Sampul penuh",
+    "gridViewFullBleedCoverDesc": "Biarkan sampul memenuhi seluruh kartu grid. Judul dan artis pindah ke gradien di atas sampul, seperti pada kolase antrean.",
+    "gridViewSquareCard": "Kartu persegi",
+    "gridViewSquareCardDesc": "Samakan tinggi kartu dengan lebarnya agar sampul persegi tampil utuh, tidak terpotong atas-bawah. Luas kartu dipertahankan sehingga kartu melebar saat memendek, dan jarak grid ikut menyesuaikan.",
+    "gridViewMinCardScale": "Ukuran kartu minimum",
+    "gridViewMinCardScaleDesc": "Seberapa kecil kartu yang jauh dari pusat boleh menyusut. Lebih tinggi membuat tepi grid tetap terbaca, lebih rendah memperdalam kesan ruang.",
+    "gridViewMinCardOpacity": "Opasitas kartu minimum",
+    "gridViewMinCardOpacityDesc": "Seberapa pudar kartu yang jauh dari pusat boleh menjadi. Lebih tinggi membuat tepi grid tetap terlihat, lebih rendah memusatkan perhatian ke tengah.",
+    "gridViewCardFalloffReset": "Pulihkan peredupan bawaan",
     "disableVisualizerGeometricBackground": "Sembunyikan latar belakang geometris umum",
     "disableVisualizerGeometricBackgroundDesc": "Sembunyikan bentuk latar belakang geometris bersama di halaman pemutar.",
     "desktopTrayBehavior": "Perilaku tray desktop",
@@ -2239,6 +2253,25 @@ export default {
       "visualizerRefinements": {
         "title": "Visualizer yang Lebih Ringan dan Jelas",
         "description": "Tempera dan Sonnet kini menyesuaikan resolusi render di sekitar batas tekstur GPU untuk mengurangi penggunaan memori yang tidak perlu. Judul Monet dan Lattice tidak mudah terpotong, dan subtitle bawah dapat menampilkan lirik non-terjemahan berikutnya tanpa efek buram."
+      }
+    },
+    "v0_7_7": {
+      "intro": "Versi 0.7.7 memulihkan pemutaran QQ Music yang andal, menyempurnakan lirik dan sampul lokal tertanam, serta meringankan pemuatan gambar Lattice.",
+      "qqPlaybackReliability": {
+        "title": "Pemutaran QQ Music Lebih Andal",
+        "description": "Pemutaran QQ Music kini memakai pemilihan CDN tambahan dan jalur cadangan yang lebih cepat untuk mengurangi kegagalan akibat pembatasan upstream saat ini."
+      },
+      "localLibraryCovers": {
+        "title": "Sampul Lokal Tetap Ada Tanpa Tag Album",
+        "description": "Gambar sampul tertanam kini tetap tersedia di pemutar dan antrean meski berkas lokal tidak memiliki nama album. Daftar lokal juga meminta thumbnail yang lebih kecil dan sesuai."
+      },
+      "embeddedLyricTracks": {
+        "title": "Terjemahan dan Romanisasi Tertanam Lebih Rapi",
+        "description": "Lirik dwibahasa dan tribahasa tertanam kini mempertahankan trek terjemahan dan romanisasi yang sejajar, tanpa mencampurnya ke lirik utama atau menghilangkan romanisasi."
+      },
+      "latticeArtworkEfficiency": {
+        "title": "Pemuatan Sampul Lattice Lebih Ringan",
+        "description": "Lattice kini memuat ukuran sampul sesuai tiap poster dan menyiapkan gambar yang lebih besar saat lagu dibuka, sehingga dekode gambar berlebih berkurang tanpa mengorbankan kejernihan transisi."
       }
     }
   },
