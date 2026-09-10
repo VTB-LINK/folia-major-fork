@@ -306,6 +306,7 @@ export default {
     "sleepTimerMinutesLabel": "分钟",
     "sleepTimerInputPlaceholder": "输入分钟数、--on 或 --off",
     "latticePosterTintPlaceholder": "使用下方控件调整叠层",
+    "gridViewCardsPlaceholder": "使用下方控件调整网格卡片",
     "sleepTimerSetPreview": "启动 {{minutes}} 分钟睡眠定时",
     "sleepTimerOffPreview": "按回车取消睡眠定时",
     "sleepTimerUnknownOption": "未知选项 --{{option}}",
@@ -505,6 +506,9 @@ export default {
       "settings-toggle-transparent": { "title": "透明化", "description": "切换播放器背景透明度" },
       "settings-toggle-daylight": { "title": "切换明暗", "description": "切换主题日夜模式" },
       "settings-toggle-player-back-button": { "title": "始终显示播放页返回按钮", "description": "切换播放页左上角返回按钮的常驻显示" },
+      "settings-gridview-cards": { "title": "网格卡片外观", "description": "直接调整全画幅封面和网格卡片的远近缩放与淡出" },
+      "settings-toggle-gridview-full-bleed-cover": { "title": "全画幅封面", "description": "开关网格卡片的封面铺满整张卡片" },
+      "settings-toggle-gridview-square-cards": { "title": "正方形网格卡片", "description": "开关全画幅网格卡片使用正方形而非竖版比例" },
       "settings-toggle-lattice-vignette": { "title": "Lattice 边缘暗角", "description": "开关队列拼贴页面四周的边缘暗角" },
       "settings-toggle-lattice-auto-focus": { "title": "Lattice 自动聚焦", "description": "切换歌曲时自动将正在播放的海报拉回队列拼贴中央" },
       "lattice-poster-tint": { "title": "Lattice 海报叠色", "description": "调整队列拼贴中非当前聚焦海报上的颜色叠层" },
@@ -1434,6 +1438,16 @@ export default {
     "latticePosterTintCustomColorDesc": "使用固定颜色替换由当前主题生成的渐变叠色。",
     "latticePosterTintColor": "叠层颜色",
     "latticePosterTintIntensity": "叠色强度",
+    "gridViewCardSettings": "网格卡片",
+    "gridViewFullBleedCover": "全画幅封面",
+    "gridViewFullBleedCoverDesc": "让封面图铺满整张网格卡片，歌名和歌手改为叠在封面上的渐变遮罩里显示，做法和队列拼贴一致。",
+    "gridViewSquareCard": "正方形卡片",
+    "gridViewSquareCardDesc": "让卡片高宽相等，方形封面完整显示，不再被上下裁掉。卡片面积保持不变，变矮的同时会变宽，网格间距同步调整。",
+    "gridViewMinCardScale": "卡片最小尺寸",
+    "gridViewMinCardScaleDesc": "远离中心的卡片最多缩小到多少。调高外围更好辨认，调低纵深感更强。",
+    "gridViewMinCardOpacity": "卡片最小透明度",
+    "gridViewMinCardOpacityDesc": "远离中心的卡片最多淡到多少。调高外围更清楚，调低视线更集中在中心。",
+    "gridViewCardFalloffReset": "恢复默认衰减",
     "disableVisualizerGeometricBackground": "隐藏通用几何背景",
     "disableVisualizerGeometricBackgroundDesc": "隐藏播放页的通用几何背景图形。",
     "desktopTrayBehavior": "桌面窗口行为",
@@ -2304,6 +2318,25 @@ export default {
       "visualizerRefinements": {
         "title": "更轻、更清晰的视觉器",
         "description": "Tempera 与 Sonnet 会根据 GPU 纹理边界动态调整渲染分辨率，减少不必要的显存占用；Monet 与 Lattice 的标题不再容易裁切，底部字幕也可关闭非翻译后续歌词的模糊效果。"
+      }
+    },
+    "v0_7_7": {
+      "intro": "0.7.7 提升 QQ 音乐的播放稳定性，改善本地嵌入歌词与封面处理，并降低 Lattice 封面加载开销。",
+      "qqPlaybackReliability": {
+        "title": "QQ 音乐播放更加稳定",
+        "description": "QQ 音乐播放使用 CDN 选择更快的备用路径，减少当前网络环境下的卡顿和中断。"
+      },
+      "localLibraryCovers": {
+        "title": "无专辑标签也能保留本地封面",
+        "description": "本地文件即使没有专辑名称，内嵌封面也会继续显示在播放器和队列中；本地列表同时改用更合适的小尺寸缩略图。"
+      },
+      "embeddedLyricTracks": {
+        "title": "嵌入歌词译文与罗马音更准确",
+        "description": "嵌入的双语、三语歌词现在会保留对齐的译文和罗马音轨道，不再把它们混入主歌词或丢失罗马音。"
+      },
+      "latticeArtworkEfficiency": {
+        "title": "Lattice 封面加载更轻量",
+        "description": "Lattice 会按海报实际显示尺寸加载封面，并在展开歌曲前预热大图，减少不必要的图片解码，同时保持展开过程清晰流畅。"
       }
     }
   },

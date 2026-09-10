@@ -306,6 +306,7 @@ export default {
     "sleepTimerMinutesLabel": "Minutes",
     "sleepTimerInputPlaceholder": "Enter minutes, --on, or --off",
     "latticePosterTintPlaceholder": "Adjust the controls below",
+    "gridViewCardsPlaceholder": "Adjust the controls below",
     "sleepTimerSetPreview": "Start a {{minutes}} min timer",
     "sleepTimerOffPreview": "Press Enter to cancel the sleep timer",
     "sleepTimerUnknownOption": "Unknown option --{{option}}",
@@ -505,6 +506,9 @@ export default {
       "settings-toggle-transparent": { "title": "Toggle transparency", "description": "Toggle transparent player background" },
       "settings-toggle-daylight": { "title": "Toggle light/dark", "description": "Toggle theme daylight/midnight mode" },
       "settings-toggle-player-back-button": { "title": "Always show player back button", "description": "Toggle whether the player page back button stays visible" },
+      "settings-gridview-cards": { "title": "Grid card look", "description": "Adjust full-bleed covers and how far grid cards shrink and fade with distance" },
+      "settings-toggle-gridview-full-bleed-cover": { "title": "Full-bleed grid covers", "description": "Toggle whether grid card artwork fills the whole card" },
+      "settings-toggle-gridview-square-cards": { "title": "Square grid cards", "description": "Toggle whether full-bleed grid cards are square instead of poster-shaped" },
       "settings-toggle-lattice-vignette": { "title": "Lattice vignette", "description": "Turn the edge vignette on the queue collage on or off" },
       "settings-toggle-lattice-auto-focus": { "title": "Lattice auto-focus", "description": "Toggle whether the queue collage follows the playing song when tracks change" },
       "lattice-poster-tint": { "title": "Lattice poster tint", "description": "Adjust the overlay that quiets posters outside the current queue collage focus" },
@@ -1435,6 +1439,16 @@ export default {
     "latticePosterTintCustomColorDesc": "Replace the theme-derived gradient with one fixed overlay colour.",
     "latticePosterTintColor": "Overlay colour",
     "latticePosterTintIntensity": "Overlay intensity",
+    "gridViewCardSettings": "Grid cards",
+    "gridViewFullBleedCover": "Full-bleed cover",
+    "gridViewFullBleedCoverDesc": "Let the artwork fill the whole grid card. The title and artist move onto a gradient over the cover, the way the queue collage handles them.",
+    "gridViewSquareCard": "Square cards",
+    "gridViewSquareCardDesc": "Make the card as tall as it is wide so a square cover is shown whole instead of cropped top and bottom. The card keeps its area, growing wider as it loses height, and the grid spacing follows.",
+    "gridViewMinCardScale": "Minimum card size",
+    "gridViewMinCardScaleDesc": "How far cards away from the centre are allowed to shrink. Higher keeps the outer grid readable, lower deepens the sense of depth.",
+    "gridViewMinCardOpacity": "Minimum card opacity",
+    "gridViewMinCardOpacityDesc": "How far cards away from the centre are allowed to fade. Higher keeps the outer grid visible, lower puts more focus on the centre.",
+    "gridViewCardFalloffReset": "Restore default falloff",
     "disableVisualizerGeometricBackground": "Hide common geometric background",
     "disableVisualizerGeometricBackgroundDesc": "Hide the shared geometric background shapes on the player page.",
     "desktopTrayBehavior": "Desktop tray behavior",
@@ -2305,6 +2319,25 @@ export default {
       "visualizerRefinements": {
         "title": "Lighter, Clearer Visualizers",
         "description": "Tempera and Sonnet now adjust render resolution around GPU texture boundaries to reduce avoidable memory use. Monet and Lattice titles avoid clipping, and the bottom subtitle can show upcoming non-translation lyrics without blur."
+      }
+    },
+    "v0_7_7": {
+      "intro": "Version 0.7.7 restores reliable QQ Music playback, improves embedded local lyrics and covers, and reduces Lattice artwork overhead.",
+      "qqPlaybackReliability": {
+        "title": "More Reliable QQ Music Playback",
+        "description": "QQ Music playback now uses additional CDN selection and a faster fallback path to reduce failures caused by current upstream rate limits."
+      },
+      "localLibraryCovers": {
+        "title": "Local Covers Survive Missing Album Tags",
+        "description": "Embedded artwork now remains available throughout the player and queue even when a local file has no album name. Local list views also request a smaller, appropriate thumbnail."
+      },
+      "embeddedLyricTracks": {
+        "title": "Cleaner Embedded Translation and Romanization",
+        "description": "Embedded bilingual and trilingual lyrics now keep aligned translation and romanization tracks instead of mixing them into the main lyrics or dropping romanization."
+      },
+      "latticeArtworkEfficiency": {
+        "title": "Lighter Lattice Artwork Loading",
+        "description": "Lattice now loads cover sizes suited to each poster and prewarms larger artwork when opening a song, reducing unnecessary image decoding while keeping expansion transitions clear."
       }
     }
   },

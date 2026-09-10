@@ -8,6 +8,7 @@ import { useLocalLibrarySettingsStore } from '../../../stores/useLocalLibrarySet
 import { isLocalLibraryAutoScanSupported } from '../../../services/localLibraryAutoScan';
 import { isNeteaseScrobbleReady } from '../../../services/onlineMusic/playbackReportGate';
 import { useLyricSettingsStore } from '../../../stores/useLyricSettingsStore';
+import { useGridViewSettingsStore } from '../../../stores/useGridViewSettingsStore';
 import { useLatticeSettingsStore } from '../../../stores/useLatticeSettingsStore';
 import { usePlaybackEntryViewStore } from '../../../stores/usePlaybackEntryViewStore';
 import { usePlayerChromeSettingsStore } from '../../../stores/usePlayerChromeSettingsStore';
@@ -81,6 +82,13 @@ export const buildSettingsCommandContext = (
         toggleAlwaysShowPlayerBackButton: () => chrome.handleToggleAlwaysShowPlayerBackButton(
             !usePlayerChromeSettingsStore.getState().alwaysShowPlayerBackButton,
         ),
+        toggleGridViewFullBleedCover: () => useGridViewSettingsStore.getState().handleToggleGridViewFullBleedCover(
+            !useGridViewSettingsStore.getState().gridViewFullBleedCover,
+        ),
+        toggleGridViewSquareCards: () => useGridViewSettingsStore.getState().handleToggleGridViewSquareCards(
+            !useGridViewSettingsStore.getState().gridViewSquareCards,
+        ),
+        canUseGridViewSquareCards: () => useGridViewSettingsStore.getState().gridViewFullBleedCover,
         toggleLatticeVignette: () => useLatticeSettingsStore.getState().handleToggleLatticeVignette(
             !useLatticeSettingsStore.getState().latticeVignette,
         ),
