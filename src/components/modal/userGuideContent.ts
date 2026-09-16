@@ -1,6 +1,7 @@
 // src/components/modal/userGuideContent.ts
 
 import { isMacPlatform as isMac } from '../../utils/platform';
+import { LATTICE_ENABLED } from '../../utils/foliaFork';
 
 export type UserGuideShortcut = {
     id: string;
@@ -27,7 +28,9 @@ export type HelpTabShortcut = {
 // these is claimed in the command palette registry, so the two must be changed together.
 export const HELP_TAB_PRIMARY_SHORTCUTS: HelpTabShortcut[] = [
     { id: 'quick-actions', titleKey: 'help.quickActions', fallback: 'Quick actions', key: 'K' },
-    { id: 'queue-collage', titleKey: 'help.queueCollage', fallback: 'Queue collage', key: 'B' },
+    // 本 fork 关闭 Lattice（见 foliaFork.LATTICE_ENABLED）：不在帮助里展示队列拼贴的快捷键，
+    // 与命令面板中被门控的 navigate-lattice 保持一致。
+    ...(LATTICE_ENABLED ? [{ id: 'queue-collage', titleKey: 'help.queueCollage', fallback: 'Queue collage', key: 'B' } as HelpTabShortcut] : []),
     { id: 'play-queue', titleKey: 'help.playQueue', fallback: 'Play queue', key: 'P' },
 ];
 
