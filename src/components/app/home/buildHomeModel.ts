@@ -5,6 +5,7 @@ import type { HomeSurfaceProps } from './homeSurfaceTypes';
 import { resolveSearchSource, type SearchSource } from '../../../stores/useSearchNavigationStore';
 import type { OnlineProviderPlatformState } from '../../../hooks/useOnlineProviderPlatform';
 import { openSettings } from '../../../stores/useSettingsModalStore';
+import { LATTICE_ENABLED } from '../../../utils/foliaFork';
 
 // src/components/app/home/buildHomeModel.ts
 
@@ -108,7 +109,7 @@ export const buildHomeModel = ({
         surfaceProps: {
             onPlaySong: playSong,
             onBackToPlayer: navigateToPlayer,
-            onOpenLattice: navigateToLattice,
+            onOpenLattice: LATTICE_ENABLED ? navigateToLattice : undefined,
             onRefreshUser: () => refreshOnlineProviderPlaylists(),
             user: onlineProviderPlatform?.activeProvider?.user ?? user,
             playlists: onlineProviderPlatform?.activeProvider?.collections.filter(collection => collection.type !== 'cloud') ?? playlists,

@@ -13,14 +13,14 @@ export const SETTINGS_ANCHOR_DEFINITIONS = {
     themePresets: { section: 'appearance', labelKey: 'options.themePresets' },
     stageTrackPill: { section: 'appearance', labelKey: 'options.stageTrackPill' },
     grid3dCardStyle: { section: 'appearance', labelKey: 'options.grid3dCardStyle' },
-    latticeSettings: { section: 'appearance', labelKey: 'options.latticeSettings' },
+    latticeSettings: { section: 'appearance', labelKey: 'options.latticeSettings', latticeGated: true },
     gridViewCardSettings: { section: 'appearance', labelKey: 'options.gridViewCardSettings' },
     importExportTitle: { section: 'appearance', labelKey: 'options.importExportTitle' },
 
     // GeneralSettingsSubview (PinnedCommandSettings renders inside it)
     languageSettings: { section: 'general', labelKey: 'options.languageSettings' },
     homeTabsVisibility: { section: 'general', labelKey: 'options.homeTabsVisibility' },
-    playbackEntryView: { section: 'general', labelKey: 'options.playbackEntryView' },
+    playbackEntryView: { section: 'general', labelKey: 'options.playbackEntryView', latticeGated: true },
     bottomUiSettings: { section: 'general', labelKey: 'options.bottomUiSettings' },
     pinnedCommands: { section: 'general', labelKey: 'options.pinnedCommands' },
 
@@ -62,7 +62,7 @@ export const SETTINGS_ANCHOR_DEFINITIONS = {
     labMotion: { section: 'lab', labelKey: 'options.reduceMotionSection' },
     labPlayerUi: { section: 'lab', labelKey: 'options.labPlayerUiSection' },
     labWindowAndTools: { section: 'lab', labelKey: 'options.labWindowAndToolsSection' },
-} as const satisfies Record<string, { section: SettingsSubviewId; labelKey: string; electronOnly?: boolean }>;
+} as const satisfies Record<string, { section: SettingsSubviewId; labelKey: string; electronOnly?: boolean; latticeGated?: boolean }>;
 
 export type SettingsAnchorId = keyof typeof SETTINGS_ANCHOR_DEFINITIONS;
 

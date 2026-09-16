@@ -7,6 +7,7 @@
 
 import { create } from 'zustand';
 import { getStoredBoolean, getStoredString, setStoredBoolean } from './storagePrimitives';
+import { LATTICE_ENABLED } from '../utils/foliaFork';
 
 /** The two surfaces a song can start on. `player` is the visualizer page. */
 export type PlaybackEntryView = 'player' | 'lattice';
@@ -15,7 +16,7 @@ const ENTRY_VIEW_KEY = 'playback_entry_view';
 const ENTRY_VIEW_CHOSEN_KEY = 'playback_entry_view_chosen';
 
 const readEntryView = (): PlaybackEntryView => (
-    getStoredString(ENTRY_VIEW_KEY, 'player') === 'lattice' ? 'lattice' : 'player'
+    LATTICE_ENABLED && getStoredString(ENTRY_VIEW_KEY, 'player') === 'lattice' ? 'lattice' : 'player'
 );
 
 export type PlaybackEntryViewState = {
@@ -51,13 +52,18 @@ export const usePlaybackEntryViewStore = create<PlaybackEntryViewState>((set, ge
     // Picking a view *is* answering the question, wherever it is picked, so this also retires the
     // prompt: someone who set it in the options should not be asked about it again afterwards.
     setPlaybackEntryView: (view) => {
+        // Lattice 关闭时强制落在 player：否则设置项若把 state 设成 lattice，navigateToPlaybackView
+        // 会走进已被门控为空操作的 navigateToLattice 分支，导致播放不跳转。
+        const effective = LATTICE_ENABLED ? view : 'player';
         if (typeof window !== 'undefined') {
-            localStorage.setItem(ENTRY_VIEW_KEY, view);
+            localStorage.setItem(ENTRY_VIEW_KEY, effective);
         }
         setStoredBoolean(ENTRY_VIEW_CHOSEN_KEY, true);
-        set({ playbackEntryView: view, hasChosenPlaybackEntryView: true });
+        set({ playbackEntryView: effective, hasChosenPlaybackEntryView: true });
     },
     requestPlaybackEntryViewPrompt: () => {
+        // Lattice 在本 fork 关闭，没有「播放落 player 还是 lattice」可问，直接不弹。
+        if (!LATTICE_ENABLED) return false;
         if (get().hasChosenPlaybackEntryView || get().isPlaybackEntryViewPromptOpen) {
             return false;
         }

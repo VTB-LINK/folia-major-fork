@@ -4,6 +4,7 @@ import { SETTINGS_NAV_GROUP_SPECS, buildSettingsNavGroups, findSettingsNavItem, 
 import en from '../../../src/i18n/locales/en';
 import zhCN from '../../../src/i18n/locales/zh-CN';
 import id from '../../../src/i18n/locales/in';
+import { LATTICE_ENABLED } from '../../../src/utils/foliaFork';
 
 // test/unit/settings/settingsNavModel.test.ts
 // The nav model replaced four parallel id-keyed lists in SettingsModal; these lock in that every
@@ -51,7 +52,10 @@ describe('settingsNavModel', () => {
     it('expands every declared anchor under its owning section', () => {
         const items = flattenSettingsNavItems(buildSettingsNavGroups(echo, { isElectron: true }));
         const rendered = items.flatMap(item => item.anchors.map(anchor => [anchor.id, item.id]));
-        const declared = Object.entries(SETTINGS_ANCHOR_DEFINITIONS).map(([id, definition]) => [id, definition.section]);
+        const declared = Object.entries(SETTINGS_ANCHOR_DEFINITIONS)
+            // 本 fork 关闭 Lattice（见 foliaFork.LATTICE_ENABLED），latticeGated 的 anchor 不进导航。
+            .filter(([, definition]) => !(('latticeGated' in definition && definition.latticeGated) && !LATTICE_ENABLED))
+            .map(([id, definition]) => [id, definition.section]);
 
         expect(rendered).toEqual(declared);
     });

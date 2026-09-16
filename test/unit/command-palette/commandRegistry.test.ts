@@ -947,11 +947,12 @@ describe('personal FM withdraws the queue commands', () => {
         QUEUE_COMMAND_IDS.forEach(id => expect(ids).not.toContain(id));
     });
 
-    it('keeps the FM controls and the guarded Lattice entry reachable', () => {
+    it('keeps the FM controls reachable while Personal FM is on air', () => {
         const ids = availableIds(true);
         expect(ids).toContain('playback-fm-mode');
         expect(ids).toContain('playback-next');
-        expect(ids).toContain('navigate-lattice');
+        // 本 fork 关闭 Lattice（见 foliaFork.LATTICE_ENABLED），navigate-lattice 命令始终不可用。
+        expect(ids).not.toContain('navigate-lattice');
     });
 });
 

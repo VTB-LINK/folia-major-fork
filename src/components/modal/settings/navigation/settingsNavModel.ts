@@ -1,5 +1,6 @@
 import { Command, Database, FlaskConical, Keyboard, Languages, PlayCircle, Server, Sparkles, Terminal, type LucideIcon } from 'lucide-react';
 import { SETTINGS_ANCHOR_DEFINITIONS, type SettingsAnchorId } from './settingsAnchorModel';
+import { LATTICE_ENABLED } from '../../../../utils/foliaFork';
 // src/components/modal/settings/navigation/settingsNavModel.ts
 // Single source of truth for the options-tab sections: sidebar order, grouping, titles and descriptions.
 
@@ -109,6 +110,7 @@ export const buildSettingsNavGroups = (t: Translate, options: { isElectron: bool
                         .filter(([, definition]) => (
                             definition.section === section.id
                             && (!('electronOnly' in definition) || !definition.electronOnly || options.isElectron)
+                            && (!('latticeGated' in definition) || !definition.latticeGated || LATTICE_ENABLED)
                         ))
                         .map(([id, definition]) => ({ id, label: t(definition.labelKey) })),
                 })),

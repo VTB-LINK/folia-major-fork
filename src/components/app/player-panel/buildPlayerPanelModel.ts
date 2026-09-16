@@ -6,6 +6,7 @@ import { handleSetVisualizerMode } from '../../../stores/useVisualizerSettingsSt
 import { handleSetVolume, handleToggleMute, setAudioQuality } from '../../../stores/useAudioSettingsStore';
 import { openSettings } from '../../../stores/useSettingsModalStore';
 import { handleToggleCoverColorBg } from '../../../stores/useThemeSettingsStore';
+import { LATTICE_ENABLED } from '../../../utils/foliaFork';
 
 // src/components/app/player-panel/buildPlayerPanelModel.ts
 
@@ -272,7 +273,7 @@ export const buildPlayerPanelModel = ({
             onRemoveSong: removeQueueSong,
             onMoveSongToEnd: moveQueueSongToEnd,
             onMoveSongToNext: moveQueueSongToNext,
-            onOpenLattice: navigateToLattice,
+            onOpenLattice: LATTICE_ENABLED ? navigateToLattice : undefined,
         },
         library: {
             onSaveCurrentQueueAsPlaylist: saveCurrentQueueAsLocalPlaylist,

@@ -1,5 +1,6 @@
 import type { CommandPaletteCommand } from '../types';
 import { defineCommand, createToggleCommand, createHomeTabCommand } from '../commandFactories';
+import { LATTICE_ENABLED } from '../../../utils/foliaFork';
 
 // src/components/command-palette/commands/navigationCommands.ts
 // Commands in the `navigation` group: moving between home tabs, the player, and window-level views.
@@ -21,7 +22,7 @@ export const navigationCommands: CommandPaletteCommand[] = [
         // The stroke stays off the primary modifier keys macOS reserves: `ctrl` here resolves to
         // Cmd, and Electron's default app menu answers Cmd+Q with Quit before the renderer ever
         // sees the keydown. Same for W/M/R/H. Lattice.tsx matches this key to close the wall.
-        { isAvailable: context => !context || context.scope.view !== 'lattice', openHotkey: { key: 'b', ctrl: true }, executeShortcut: 'w' }),
+        { isAvailable: context => LATTICE_ENABLED && (!context || context.scope.view !== 'lattice'), openHotkey: { key: 'b', ctrl: true }, executeShortcut: 'w' }),
     {
         id: 'browser-fullscreen',
         group: 'navigation',

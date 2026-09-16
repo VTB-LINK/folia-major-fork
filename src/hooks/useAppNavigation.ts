@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { LocalLibraryGroup } from '../types';
 import type { NavidromeViewSelection } from '../types/navidrome';
+import { LATTICE_ENABLED } from '../utils/foliaFork';
 import {
     type SearchReturnView,
     type SearchSource,
@@ -260,6 +261,7 @@ export function useAppNavigation() {
     }, [pushNavigationState]);
 
     const navigateToLattice = useCallback(() => {
+        if (!LATTICE_ENABLED) return;
         if (blockLatticeNavigationInFm()) return;
         if (useAppViewStore.getState().view === 'lattice') return;
         useSearchNavigationStore.getState().hideSearchOverlay();

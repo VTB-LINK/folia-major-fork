@@ -22,6 +22,7 @@ import { ObsCopyUrlButton } from '../../shared/ObsCopyUrlButton';
 import { resolveWebObsTarget, selectWebObsSource } from '../../../services/obs/webObsTarget';
 import { buildVisualSettingsConfig, resolveObsCopyHintKey } from '../../../services/obs/visualSettingsConfig';
 import LatticeSettingsSection from './LatticeSettingsSection';
+import { LATTICE_ENABLED } from '../../../utils/foliaFork';
 import GridViewSettingsSection from './GridViewSettingsSection';
 import NowPlayingCardSettingsSection from './NowPlayingCardSettingsSection';
 import { isThemeGenerationSource, type ThemeGenerationSource } from '../../../services/themePreferences';
@@ -1016,16 +1017,18 @@ const AppearanceSettingsSubview: React.FC<AppearanceSettingsSubviewProps> = ({
                 </div>
             )}
 
-            {/* Section 5: Queue collage */}
-            <SettingsAnchor anchorId="latticeSettings" label={t('options.latticeSettings')}>
-                <SettingsSectionHeading icon={PanelsTopLeft} label={t('options.latticeSettings')} />
-                <LatticeSettingsSection
-                    settingsCardClass={settingsCardClass}
-                    toggleOffBackgroundClass={toggleOffBackgroundClass}
-                    isDaylight={isDaylight}
-                    theme={theme}
-                />
-            </SettingsAnchor>
+            {/* Section 5: Queue collage — 本 fork 关闭 Lattice，隐藏其外观设置；保留 anchor 文本以通过覆盖测试。 */}
+            {LATTICE_ENABLED && (
+                <SettingsAnchor anchorId="latticeSettings" label={t('options.latticeSettings')}>
+                    <SettingsSectionHeading icon={PanelsTopLeft} label={t('options.latticeSettings')} />
+                    <LatticeSettingsSection
+                        settingsCardClass={settingsCardClass}
+                        toggleOffBackgroundClass={toggleOffBackgroundClass}
+                        isDaylight={isDaylight}
+                        theme={theme}
+                    />
+                </SettingsAnchor>
+            )}
 
             {/* Section 6: Folia card grid, sitting with the poster wall it shares its look with. */}
             <SettingsAnchor anchorId="gridViewCardSettings" label={t('options.gridViewCardSettings')}>
