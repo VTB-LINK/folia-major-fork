@@ -5,7 +5,6 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useSettingsModalStore } from '../../stores/useSettingsModalStore';
 import { useThemeSettingsStore } from '../../stores/useThemeSettingsStore';
 import { openCurrentPagePonder } from '../../services/ponder/pagePonderTarget';
-import { FORK_SOURCE_URL, FORK_SOURCE_LABEL } from '../../utils/forkSource';
 import type { Theme } from '../../types';
 
 // src/components/modal/UserGuideModal.tsx
@@ -70,11 +69,6 @@ export const UserGuideModal: React.FC<{ theme?: Theme | null }> = ({ theme }) =>
                         )}
 
                         <p className="mt-6 text-xs opacity-45">{t('ponder.onboarding.required')}</p>
-                        {/* fork：AGPL §13 应用内源码声明（Help 面板也常驻有一份）。 */}
-                        <p className="mt-4 text-[11px] leading-relaxed opacity-45">
-                            {t('userGuide.agplNotice')}
-                            <a href={FORK_SOURCE_URL} target="_blank" rel="noopener noreferrer" className="underline decoration-current/30 hover:decoration-current transition-colors">{FORK_SOURCE_LABEL}</a>
-                        </p>
                     </motion.div>
                 </motion.div>
             )}

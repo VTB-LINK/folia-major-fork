@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { NewFeaturesIntro } from './NewFeaturesIntro';
 import { resolveReducedMotion, useMotionSettingsStore } from '../../stores/useMotionSettingsStore';
 import { OVERLAY_TRANSITION, OVERLAY_CALM_TRANSITION, overlayBackdropMotion, overlayPanelMotionFor } from '../shared/overlayEntranceMotion';
+import { FORK_SOURCE_URL, FORK_SOURCE_LABEL } from '../../utils/forkSource';
 import type { Theme } from '../../types';
 
 // src/components/modal/ReleaseNotesDialog.tsx
@@ -70,6 +71,11 @@ const ReleaseNotesDialog: React.FC<ReleaseNotesDialogProps> = ({ isOpen, isDayli
                     style={{ backgroundColor: theme?.accentColor || '#f43f5e', opacity: 0.14 }}
                 />
                 <NewFeaturesIntro isDaylight={isDaylight} classes={classes} />
+                {/* fork：AGPL §13 应用内源码声明（Help 面板也常驻有一份）。 */}
+                <p className={`mt-6 text-center text-[11px] leading-relaxed ${classes.textSecondary}`}>
+                    {t('userGuide.agplNotice')}
+                    <a href={FORK_SOURCE_URL} target="_blank" rel="noopener noreferrer" className="underline decoration-current/30 hover:decoration-current transition-colors">{FORK_SOURCE_LABEL}</a>
+                </p>
             </motion.div>
         </motion.div>
             )}
