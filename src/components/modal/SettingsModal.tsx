@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { MotionValue } from 'framer-motion';
-import { X, Command, Keyboard, Loader2, Check, AlertCircle, ChevronLeft, Download, ExternalLink, CircleHelp } from 'lucide-react';
+import { X, Keyboard, Loader2, Check, AlertCircle, ChevronLeft, Download, ExternalLink, CircleHelp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getCacheUsageByCategory, clearCacheByCategory, clearAllData } from '../../services/db';
 import { DualTheme, StageStatus, StageSource, Theme, ThemeMode, type CadenzaTuning, type CappellaEmojiImage, type CappellaTuning, type FumeTuning, type NowPlayingConnectionStatus, type PartitaTuning, type ReplayGainMode, type TiltTuning, type StoredCustomLyricsFont, type VisualizerMode } from '../../types';
@@ -26,6 +26,9 @@ import PlaybackSettingsSubview from './settings/PlaybackSettingsSubview';
 import InteractionSettingsSubview from './settings/InteractionSettingsSubview';
 import StorageSettingsSection from './settings/StorageSettingsSection';
 import { AiHelpPromptModal } from './AiHelpPromptModal';
+import SettingsHelpActions from './SettingsHelpActions';
+import { openPonderNavigation } from '../../services/ponder/pagePonderTarget';
+import ReleaseNotesDialog from './ReleaseNotesDialog';
 import { discordIconUrl, openDiscordInvite } from '../shared/discordCommunity';
 import meowImageUrl from '../../../build/miao.png';
 import type { LyricData } from '../../types';
@@ -49,6 +52,7 @@ import type { ThemeCacheSongKey } from '../../services/themeCache';
 import type { ThemeGenerationSource } from '../../services/themePreferences';
 import { isMacPlatform as isMac } from '../../utils/platform';
 import { HELP_TAB_PRIMARY_SHORTCUTS } from './userGuideContent';
+import { openCurrentPagePonder } from '../../services/ponder/pagePonderTarget';
 import { selectVisualizerSettingsSnapshot, useVisualizerSettingsStore } from '../../stores/useVisualizerSettingsStore';
 import { selectVisualizerAssetSnapshot, useVisualizerAssetStore } from '../../stores/useVisualizerAssetStore';
 import { selectLyricSettingsSnapshot, useLyricSettingsStore } from '../../stores/useLyricSettingsStore';
@@ -234,11 +238,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         hidePlayerRightPanelButton,
         transparentPlayerBackground,
         autoHidePlayerChrome,
+        autoHideCursorWithPlayerChrome,
         showOpenPanelCloseButton,
         handleToggleHidePlayerProgressBar: onToggleHidePlayerProgressBar,
         handleToggleHidePlayerRightPanelButton: onToggleHidePlayerRightPanelButton,
         handleToggleTransparentPlayerBackground: onToggleTransparentPlayerBackgroundFromStore,
         handleToggleAutoHidePlayerChrome: onToggleAutoHidePlayerChrome,
+        handleToggleAutoHideCursorWithPlayerChrome: onToggleAutoHideCursorWithPlayerChrome,
         handleToggleOpenPanelCloseButton: onToggleOpenPanelCloseButton,
     } = usePlayerChromeSettingsStore(useShallow(selectPlayerChromeSettingsSnapshot));
     const {
@@ -378,7 +384,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     } = useVisualizerAssetStore(useShallow(selectVisualizerAssetSnapshot));
     const resolvedToggleTransparentPlayerBackground = onToggleTransparentPlayerBackground ?? onToggleTransparentPlayerBackgroundFromStore;
     const setIsSubSettingsViewOpen = useSettingsModalStore(state => state.setIsSubSettingsViewOpen);
-    const setIsUserGuideModalOpen = useSettingsModalStore(state => state.setIsUserGuideModalOpen);
     const [activeTab, setActiveTab] = useState<'help' | 'options'>(initialTab);
     const [tabDirection, setTabDirection] = useState<'left' | 'right'>('right');
     const handleTabChange = (tab: 'help' | 'options') => {
@@ -397,6 +402,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const [showLyricFilterSettings, setShowLyricFilterSettings] = useState(false);
     const [showGlobalLyricOffset, setShowGlobalLyricOffset] = useState(false);
     const [showAiHelpPrompt, setShowAiHelpPrompt] = useState(false);
+    const [showReleaseNotes, setShowReleaseNotes] = useState(false);
     const [versionCopied, setVersionCopied] = useState(false);
     const [stageAddressCopied, setStageAddressCopied] = useState(false);
     const [authorClickCount, setAuthorClickCount] = useState(0);
@@ -1031,7 +1037,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         || showThemePark
         || showLyricFilterSettings
         || showGlobalLyricOffset
-        || showAiHelpPrompt;
+        || showAiHelpPrompt
+        || showReleaseNotes;
 
     const closeAllSubviews = () => {
         if (shouldCloseModalOnSubviewBack) {
@@ -1043,6 +1050,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         setShowLyricFilterSettings(false);
         setShowGlobalLyricOffset(false);
         setShowAiHelpPrompt(false);
+        setShowReleaseNotes(false);
     };
 
     useEffect(() => {
@@ -1262,6 +1270,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             exit={{ opacity: 0 }}
             transition={shellTransition}
             data-folia-keyboard-window="true"
+            data-ponder-page-scope={activeTab === 'help' ? 'help-page' : 'settings-page'}
             className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8 sm:px-5 sm:py-12"
             style={{ backgroundColor: overlayBackground }}
             onMouseDown={handleOverlayMouseDown}
@@ -1331,7 +1340,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-hidden relative z-10">
+                <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative z-10">
                     <AnimatePresence mode="popLayout" initial={false}>
                         {activeTab === 'help' ? (
                             <motion.div
@@ -1342,8 +1351,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 animate="center"
                                 exit="exit"
                                 transition={shellTransition}
-                                className="space-y-6 select-none h-full overflow-y-auto custom-scrollbar pr-2 pb-4"
+                                className="space-y-6 select-none flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 pb-4"
                             >
+                                <SettingsHelpActions
+                                    onOpenReleaseNotes={() => setShowReleaseNotes(true)}
+                                    onOpenPonder={openPonderNavigation}
+                                />
+
                                 {/* Navigation - REMOVED requested items */}
                                 {/* 
                                 Removed:
@@ -1412,17 +1426,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                                 {/* User Guide Button */}
                                 <div className="mt-6 flex flex-wrap justify-center gap-3">
-                                    <button
-                                        onClick={() => {
-                                            setIsUserGuideModalOpen(true);
-                                            onClose();
-                                        }}
-                                        className="px-6 py-2 bg-white/10 hover:bg-white/20 transition-colors rounded-full text-sm font-medium flex items-center gap-2"
-                                        style={{ color: 'var(--text-primary)' }}
-                                    >
-                                        <Command size={16} />
-                                        {t('userGuide.showGuide', 'Show User Guide')}
-                                    </button>
                                     <button
                                         type="button"
                                         onClick={() => setShowAiHelpPrompt(true)}
@@ -1662,6 +1665,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 onOpenAiSettings={() => useSettingsModalStore.getState().openSettings('options', 'desktop', null, 'electronSettings')}
                                                 onToggleTransparentPlayerBackground={resolvedToggleTransparentPlayerBackground}
                                                 onToggleAutoHidePlayerChrome={onToggleAutoHidePlayerChrome}
+                                                onToggleAutoHideCursorWithPlayerChrome={onToggleAutoHideCursorWithPlayerChrome}
                                                 onSaveCustomTheme={onSaveCustomTheme}
                                                 settingsCardClass={settingsCardClass}
                                                 songThemeAutoSwitchEnabled={songThemeAutoSwitchEnabled}
@@ -1671,6 +1675,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 toggleOffBackgroundClass={toggleOffBackgroundClass}
                                                 transparentPlayerBackground={transparentPlayerBackground}
                                                 autoHidePlayerChrome={autoHidePlayerChrome}
+                                                autoHideCursorWithPlayerChrome={autoHideCursorWithPlayerChrome}
                                                 stageTrackPillMode={stageTrackPillMode}
                                                 stageTrackPillTimeoutSec={stageTrackPillTimeoutSec}
                                                 stageTrackPillOnHome={stageTrackPillOnHome}
@@ -2131,6 +2136,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 theme={theme}
                 onClose={() => setShowAiHelpPrompt(false)}
                 onCopyText={copyText}
+            />
+            <ReleaseNotesDialog
+                isOpen={showReleaseNotes}
+                isDaylight={isDaylight}
+                theme={theme}
+                onClose={() => setShowReleaseNotes(false)}
             />
         </motion.div>
     );

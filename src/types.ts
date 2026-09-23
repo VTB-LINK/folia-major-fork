@@ -632,6 +632,8 @@ export interface TemperaTuning {
   colorMode: TemperaColorMode;
   showBlocks: boolean;
   showDecor: boolean;
+  /** 边角线框: the two registration marks in the top-left and bottom-right corners. */
+  showCornerMarks: boolean;
   /**
    * 文字动态反色: the lyric samples the artwork under it and picks whichever of ink/paper
    * contrasts more, per pixel. This is how the mode colours type, not a post-process, so it
@@ -674,6 +676,7 @@ export const DEFAULT_TEMPERA_TUNING: TemperaTuning = {
   colorMode: 'duo',
   showBlocks: true,
   showDecor: true,
+  showCornerMarks: true,
   textInversion: true,
   layerImages: [],
   layerImageDepth: 'back',
@@ -1160,6 +1163,10 @@ export interface SearchResponse {
 // Local Music Types
 
 export type LocalLyricsPriority = 'local' | 'online';
+export type ActiveLocalLyricsSource = 'local' | 'embedded' | 'online';
+// Where a local song's `local*LyricsContent` came from: a sidecar file picked by the import, or a
+// file the user uploaded from the panel. Records written before this field existed have none.
+export type LocalLyricsOrigin = 'sidecar' | 'upload';
 
 export interface LocalSong {
   id: string; // UUID for local file
@@ -1210,8 +1217,10 @@ export interface LocalSong {
   hasLocalLyrics?: boolean;
   localLyricsContent?: string;
   localLyricsFormat?: 'vtt' | 'ttml' | 'yrc' | 'qrc' | 'krc';
+  localLyricsOrigin?: LocalLyricsOrigin;
   hasLocalTranslationLyrics?: boolean;
   localTranslationLyricsContent?: string;
+  localTranslationLyricsOrigin?: LocalLyricsOrigin;
 
   // Embedded Lyrics (from file tags: ID3 USLT, Vorbis LYRICS, etc.)
   hasEmbeddedLyrics?: boolean;
@@ -1241,6 +1250,7 @@ export interface LocalLibrarySnapshotNode {
 export interface LocalLibrarySnapshot {
   rootFolderName: string;
   ignoredFolderPaths?: string[];
+  lyricFormatOrder?: import('./utils/lyrics/localLyricFormatOrder').LocalLyricFileFormat[]; // Sidecar lyric format order this scan used; undefined = default order
   scannedAt: number;
   tree: LocalLibrarySnapshotNode;
 }
