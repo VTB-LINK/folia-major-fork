@@ -57,10 +57,12 @@ export type SyncedVisualSettings = {
     monetBackgroundTuning?: unknown;
     nomandBackgroundTuning?: unknown;
     latentBackgroundTuning?: unknown;
+    soraBackgroundTuning?: unknown;
     monetTuning?: unknown;
     pendoloTuning?: unknown;
     sonnetTuning?: unknown;
     temperaTuning?: unknown;
+    lumiereTuning?: unknown;
     urlBackgroundList?: unknown[];
     urlBackgroundSelectedId?: string | null;
     homeLayoutStyle?: 'carousel' | 'grid';

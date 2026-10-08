@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getAvailableCommandPaletteCommands, isCommandPaletteCommandEnabled, rankCommands, COMMAND_PALETTE_COMMANDS } from './commandRegistry';
+import { isCommandPaletteCommandEnabled, rankCommands, COMMAND_PALETTE_COMMANDS } from './commandRegistry';
 import { OPEN_HOTKEY_INDEX, openHotkeyStroke } from './commands';
 import { findCommandsByTrigger } from './search/commandSearchIndex';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +15,7 @@ import { useInteractionSettingsStore } from '../../stores/useInteractionSettings
 import { resolveCustomShortcutCommand } from './customShortcut';
 
 // src/components/command-palette/useCommandPalette.ts
-import { isTextEntryTarget } from '../../utils/keyboardTargets';
+import { effectiveKeyCode, isTextEntryTarget } from '../../utils/keyboardTargets';
 
 // Manages palette state, keyboard opening, and selected autocomplete item.
 
@@ -94,17 +94,29 @@ export const useCommandPalette = ({
      *
      * So: recompute eagerly, hand back the previous array when nothing actually changed. That is
      * what lets `defaultMatches` below leave `context` out of its dependencies.
+     *
+     * The stable set keeps hidden commands, because `canInvokeCommandById` gates on it and has
+     * always let a UI surface reach a hidden command; the palette's own list drops them.
      */
-    const availableCommandsRef = useRef<CommandPaletteCommand[]>([]);
-    const availableCommands = useMemo(() => {
-        const next = getAvailableCommandPaletteCommands(context);
-        const previous = availableCommandsRef.current;
+    const enabledCommandsRef = useRef<CommandPaletteCommand[]>([]);
+    const enabledCommands = useMemo(() => {
+        const next = COMMAND_PALETTE_COMMANDS.filter(command => isCommandPaletteCommandEnabled(command, context));
+        const previous = enabledCommandsRef.current;
         if (next.length === previous.length && next.every((command, index) => command === previous[index])) {
             return previous;
         }
-        availableCommandsRef.current = next;
+        enabledCommandsRef.current = next;
         return next;
     }, [context, isOpen]);
+    const availableCommands = useMemo(
+        () => enabledCommands.filter(command => !command.hidden),
+        [enabledCommands],
+    );
+    // Event handlers read the live context from here, so their identities do not follow every
+    // context tick. `invokeCommandById` and `canInvokeCommandById` reach App's overlay model, and
+    // a volume write re-rendering every overlay is what renderCounts.probe.ts guards against.
+    const contextRef = useRef(context);
+    contextRef.current = context;
     const pinnedCommands = useMemo(
         () => resolvePinnedCommandSlots(pinnedCommandIds, availableCommands),
         [availableCommands, pinnedCommandIds],
@@ -198,13 +210,13 @@ export const useCommandPalette = ({
     }, []);
 
     const activateInputCommand = useCallback((command: CommandPaletteCommand) => {
-        const initialInput = command.getInitialInput?.(context) ?? '';
+        const initialInput = command.getInitialInput?.(contextRef.current) ?? '';
         recordRecentCommand(command);
         setActiveCommand(command);
         setQuery(initialInput);
         setMatchQuery(initialInput);
         setActiveIndex(0);
-    }, [context, recordRecentCommand]);
+    }, [recordRecentCommand]);
 
     // Opens the palette straight into one command, used by the per-command openHotkey entries.
     const openCommand = useCallback((command: CommandPaletteCommand) => {
@@ -228,17 +240,20 @@ export const useCommandPalette = ({
 
     /** Uses the palette's platform, scope and availability gates for buttons outside the palette. */
     const canInvokeCommandById = useCallback((commandId: string) => {
-        const command = COMMAND_PALETTE_COMMANDS.find(entry => entry.id === commandId);
-        if (!command || !isCommandPaletteCommandEnabled(command, context)) {
+        const command = enabledCommands.find(entry => entry.id === commandId);
+        if (!command) {
             return false;
         }
         return command.surface ? !isBlocked && !isExecuting : true;
-    }, [context, isBlocked, isExecuting]);
+    }, [enabledCommands, isBlocked, isExecuting]);
 
     /** Opens surface commands in the palette and directly executes commands without a surface. */
+    // Re-asks availability against the live context at click time; `openCommand` applies the
+    // blocked / executing gate for surface commands.
     const invokeCommandById = useCallback((commandId: string) => {
+        const liveContext = contextRef.current;
         const command = COMMAND_PALETTE_COMMANDS.find(entry => entry.id === commandId);
-        if (!command || !canInvokeCommandById(commandId)) {
+        if (!command || !isCommandPaletteCommandEnabled(command, liveContext)) {
             return;
         }
 
@@ -248,8 +263,8 @@ export const useCommandPalette = ({
         }
 
         recordRecentCommand(command);
-        void command.execute('', context);
-    }, [canInvokeCommandById, context, openCommand, recordRecentCommand]);
+        void command.execute('', liveContext);
+    }, [openCommand, recordRecentCommand]);
 
     const executeMatch = useCallback(async (index: number) => {
         if (isExecuting) {
@@ -278,7 +293,9 @@ export const useCommandPalette = ({
             const didExecute = await match.command.execute(input, context);
             if (didExecute) {
                 recordRecentCommand(resolveRecentCommandToRecord(match.command, activeCommand));
-                close();
+                if (match.command.closeAfterExecute !== false) {
+                    close();
+                }
             }
             return didExecute;
         } finally {
@@ -300,7 +317,9 @@ export const useCommandPalette = ({
             const didExecute = await command.execute('', context);
             if (didExecute) {
                 recordRecentCommand(command);
-                close();
+                if (command.closeAfterExecute !== false) {
+                    close();
+                }
             }
             return didExecute;
         } finally {
@@ -339,12 +358,11 @@ export const useCommandPalette = ({
         }
         return executeMatch(activeIndex);
     }, [activeIndex, close, commitQuery, context, executeCommand, executeMatch, isExecuting, matches, query, surface]);
-
-
-
+    // Surface match lists use live input, so their selection must reset with that same query.
+    const selectionQuery = surface?.buildMatches || surface?.useLiveQuery ? query : matchQuery;
     useEffect(() => {
         setActiveIndex(0);
-    }, [matchQuery]);
+    }, [selectionQuery]);
 
     // A surface can ask the palette for something without knowing anything about it — a grid
     // restoring a view it had filtered, a click that used to dismiss the box, a button pointed at
@@ -453,7 +471,8 @@ export const useCommandPalette = ({
 
     useEffect(() => {
         if (activeIndex >= matches.length) {
-            setActiveIndex(Math.max(0, matches.length - 1));
+            // Preserve a query reset already queued by the effect above before clamping the index.
+            setActiveIndex(current => Math.min(current, Math.max(0, matches.length - 1)));
         }
     }, [activeIndex, matches.length]);
 
@@ -485,7 +504,8 @@ export const useCommandPalette = ({
             }
 
             // Works everywhere, because it carries a modifier.
-            if (event.code === 'KeyK' && isPrimaryModifierPressed(event) && !event.altKey && !event.shiftKey && !isSecondaryModifierPressed(event)) {
+            // Software-injected shortcuts may provide the key without a physical key code.
+            if ((effectiveKeyCode(event) === 'KeyK' || event.key.toLowerCase() === 'k') && isPrimaryModifierPressed(event) && !event.altKey && !event.shiftKey && !isSecondaryModifierPressed(event)) {
                 if (isBlocked) {
                     return;
                 }
@@ -506,12 +526,23 @@ export const useCommandPalette = ({
                     return;
                 }
                 if (event.key.length === 1) {
+                    // A key a command declares as its bare entry — `:` for execute mode — is that
+                    // command, not a filter character. Without this the grids swallowed the colon
+                    // and execute mode could not be reached from them at all. Checked here rather
+                    // than left to the dispatch below, which refuses bare keys wherever a filter
+                    // owns them.
+                    const bareHotkeyCommand = OPEN_HOTKEY_INDEX.get(openHotkeyStroke({ key: event.key }));
+                    if (bareHotkeyCommand && isCommandPaletteCommandEnabled(bareHotkeyCommand, context)) {
+                        event.preventDefault();
+                        invokeCommand(bareHotkeyCommand);
+                        return;
+                    }
                     // The opening keystroke is deliberately dropped rather than seeded into the
                     // box. Replaying it would put a stray latin character in front of an IME
                     // composition that the same press is already starting — the grids swallowed it
                     // for exactly this reason, and the palette has to keep doing so.
                     event.preventDefault();
-                    if (paletteHotkeyOnFilteringSurface && event.code === 'KeyS' && !event.shiftKey) {
+                    if (paletteHotkeyOnFilteringSurface && effectiveKeyCode(event) === 'KeyS' && !event.shiftKey) {
                         open();
                         return;
                     }
@@ -550,7 +581,7 @@ export const useCommandPalette = ({
                 return;
             }
 
-            if (event.code !== 'KeyS') {
+            if (effectiveKeyCode(event) !== 'KeyS') {
                 return;
             }
             if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {

@@ -6,12 +6,15 @@ import type { Theme } from '../../../types';
 import type { AppLanguagePreference } from '../../../i18n/config';
 import { CustomSelect } from '../../shared/CustomSelect';
 import PinnedCommandSettings from './PinnedCommandSettings';
+import PonderHintSettingsSection from './PonderHintSettingsSection';
 import PlaybackEntryViewSection from './PlaybackEntryViewSection';
+import LibrarySuiteSection from './LibrarySuiteSection';
 import { LATTICE_ENABLED } from '../../../utils/foliaFork';
 import PlayerBottomBarSection from './PlayerBottomBarSection';
 import HomeCardPositionSection from './HomeCardPositionSection';
 import { SettingsAnchor } from './navigation/SettingsAnchorContext';
 import SettingsSectionHeading from './navigation/SettingsSectionHeading';
+import { settingsDividerClassFor } from './settingsCardClasses';
 import { useHomeLayoutSettingsStore } from '../../../stores/useHomeLayoutSettingsStore';
 import { useSettingsModalStore } from '../../../stores/useSettingsModalStore';
 
@@ -58,7 +61,6 @@ const GeneralSettingsSubview: React.FC<GeneralSettingsSubviewProps> = ({
         handleToggleHomeTabAlbums: state.handleToggleHomeTabAlbums,
         handleToggleHomeTabLocal: state.handleToggleHomeTabLocal,
     })));
-
     const getResolvedLanguageLabel = (): string => {
         const lang = i18n.resolvedLanguage;
         if (lang?.startsWith('zh')) {
@@ -122,7 +124,7 @@ const GeneralSettingsSubview: React.FC<GeneralSettingsSubviewProps> = ({
             <SettingsAnchor anchorId="homeTabsVisibility" label={t('options.homeTabsVisibility')}>
                 <SettingsSectionHeading icon={LayoutList} label={t('options.homeTabsVisibility')} />
                 <div className={`rounded-xl border ${settingsCardClass} overflow-hidden`}>
-                    <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/5">
+                    <div className={`flex items-center justify-between p-4 border-b ${settingsDividerClassFor(isDaylight)}`}>
                         <div className="space-y-1">
                             <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                                 {t('options.showHomeTabPlaylist')}
@@ -137,7 +139,7 @@ const GeneralSettingsSubview: React.FC<GeneralSettingsSubviewProps> = ({
                         </button>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/5">
+                    <div className={`flex items-center justify-between p-4 border-b ${settingsDividerClassFor(isDaylight)}`}>
                         <div className="space-y-1">
                             <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                                 {t('options.showHomeTabRadio')}
@@ -152,7 +154,7 @@ const GeneralSettingsSubview: React.FC<GeneralSettingsSubviewProps> = ({
                         </button>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/5">
+                    <div className={`flex items-center justify-between p-4 border-b ${settingsDividerClassFor(isDaylight)}`}>
                         <div className="space-y-1">
                             <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                                 {t('options.showHomeTabAlbums')}
@@ -194,6 +196,12 @@ const GeneralSettingsSubview: React.FC<GeneralSettingsSubviewProps> = ({
                 />
             )}
 
+            <LibrarySuiteSection
+                isDaylight={isDaylight}
+                settingsCardClass={settingsCardClass}
+                theme={theme}
+            />
+
             <SettingsAnchor anchorId="bottomUiSettings" label={t('options.bottomUiSettings')} className="space-y-4">
                 <SettingsSectionHeading icon={Move} label={t('options.bottomUiSettings')} />
                 <PlayerBottomBarSection
@@ -209,6 +217,12 @@ const GeneralSettingsSubview: React.FC<GeneralSettingsSubviewProps> = ({
                 isDaylight={isDaylight}
                 settingsCardClass={settingsCardClass}
                 theme={theme}
+            />
+
+            <PonderHintSettingsSection
+                settingsCardClass={settingsCardClass}
+                isDaylight={isDaylight}
+                accentColor={theme?.accentColor}
             />
         </div>
     );

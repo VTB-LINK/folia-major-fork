@@ -11,6 +11,8 @@ import { useTypographySettingsStore } from '../../stores/useTypographySettingsSt
 import { usePlayerChromeSettingsStore } from '../../stores/usePlayerChromeSettingsStore';
 import { useVisualizerSettingsStore } from '../../stores/useVisualizerSettingsStore';
 import { useVisualizerAssetStore } from '../../stores/useVisualizerAssetStore';
+import { useStageSettingsStore } from '../../stores/useStageSettingsStore';
+import { resolveMainWindowVisualizerMode } from '../../utils/obsBrowserSource';
 import {
     selectDisplayCoverUrl,
     selectDisplayLyrics,
@@ -21,6 +23,7 @@ import {
 import { getSongAlbumLabel, getSongArtistLabel } from '../../services/onlineMusic/songMetadata';
 import { useVisualizerBackgroundConfig } from './useVisualizerBackgroundConfig';
 import { useVisualizerTunings } from './useVisualizerTunings';
+import { NO_LYRIC_LINES } from '../../utils/lyrics/noLyricLines';
 
 // src/components/visualizer/useVisualizerRendererModel.ts
 //
@@ -38,7 +41,7 @@ type VisualizerRendererModelDeps = {
     subtitleTheme: Theme;
     /** The displayed song's id; visualizers infer "song changed" from it. */
     seed: string | number | undefined;
-    /** Rendering into the OBS browser source instead of the window: freeze to a still. */
+    /** Rendering into the OBS browser source instead of the window: freeze to a still (unless the user keeps the animation). */
     isObsBrowserSourceRendering: boolean;
     shouldPauseVisualizerBackground: boolean;
     hideTranslationSubtitle: boolean;
@@ -68,6 +71,7 @@ export const useVisualizerRendererModel = ({
     const staticMode = useThemeSettingsStore(state => state.staticMode);
     const alwaysShowPlayerBackButton = usePlayerChromeSettingsStore(state => state.alwaysShowPlayerBackButton);
     const visualizerMode = useVisualizerSettingsStore(state => state.visualizerMode);
+    const obsKeepMainWindowAnimation = useStageSettingsStore(state => state.obsKeepMainWindowAnimation);
     const visualizerOpacity = useVisualizerSettingsStore(state => state.visualizerOpacity);
     const disableGeometricBackground = useVisualizerSettingsStore(state => state.disableVisualizerGeometricBackground);
     const onMonetTuningChange = useVisualizerSettingsStore(state => state.handleSetMonetTuning);
@@ -117,13 +121,13 @@ export const useVisualizerRendererModel = ({
         },
     }), [backgroundConfig, isPlayerPageTransparent, disableGeometricBackground, isSettingsSubviewOpen]);
 
-    const mode: VisualizerMode = isObsBrowserSourceRendering ? 'still' : visualizerMode;
+    const mode: VisualizerMode = resolveMainWindowVisualizerMode(visualizerMode, isObsBrowserSourceRendering, obsKeepMainWindowAnimation);
 
     return {
         mode,
         currentTime: lyricCurrentTime,
         currentLineIndex,
-        lines: displayLyrics?.lines || [],
+        lines: displayLyrics?.lines || NO_LYRIC_LINES,
         theme,
         subtitleTheme,
         isDaylight,

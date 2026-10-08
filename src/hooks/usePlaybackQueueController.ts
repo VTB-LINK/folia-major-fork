@@ -28,6 +28,7 @@ import { buildStagePlayerSnapshot, resolveStagePlayerQueueItemIndex } from '../u
 import type { LocalLibraryDisplayCatalog } from '../services/playbackAdapters';
 import type { SearchReturnView, SearchSource } from '../stores/useSearchNavigationStore';
 import { dispatchSearchTrackAction } from '../components/app/search/searchTrackActions';
+import { playbackFade } from '../services/playbackFade';
 import { getProviderSongMetadata } from '../services/onlineMusic/songMetadata';
 import { setStatusMessage as setStatusMsg } from '../stores/useStatusMessageStore';
 import { setAudioSrc, setCachedCoverUrl, setCurrentLineIndex, setCurrentSong, setDuration, setIsFmMode, setPlayQueue, setPlayerState, usePlaybackStore } from '../stores/usePlaybackStore';
@@ -38,6 +39,7 @@ import { useAudioSettingsStore } from '../stores/useAudioSettingsStore';
 import { useSearchNavigationStore } from '../stores/useSearchNavigationStore';
 import { showLatticeFmNotice, usePlaybackEntryViewStore } from '../stores/usePlaybackEntryViewStore';
 import { useStableActionSurface } from './useStableCallbacks';
+import { hasBeforePlayHook, runBeforePlayHook } from '../services/hostExtensionHooks';
 
 // src/hooks/usePlaybackQueueController.ts
 
@@ -174,6 +176,8 @@ export function usePlaybackQueueController({
     // in App.tsx only because everything about playback used to be.
     /** Rising id that lets a newer load invalidate an in-flight older one. */
     const playbackRequestIdRef = useRef(0);
+    /** Rising id per playSong call: a newer call supersedes an older one still awaiting `beforePlay`. */
+    const playSongCallIdRef = useRef(0);
     const pendingUnavailableSkipTimerRef = useRef<number | null>(null);
     const pendingUnavailableSkipIntervalRef = useRef<number | null>(null);
 
@@ -262,8 +266,9 @@ export function usePlaybackQueueController({
         appendOnlineSongsToMainQueue([song]);
     }, [appendOnlineSongsToMainQueue]);
 
-    const addOnlineSongsToQueue = useCallback((songs: SongResult[]) => {
-        appendOnlineSongsToMainQueue(songs);
+    // Batch variant; returns how many songs the queue actually took so callers that want their own toast can count.
+    const addOnlineSongsToQueue = useCallback((songs: SongResult[], options?: { suppressToast?: boolean }) => {
+        return appendOnlineSongsToMainQueue(songs, options).affectedCount;
     }, [appendOnlineSongsToMainQueue]);
 
     const clearPendingUnavailableSkip = useCallback(() => {
@@ -436,11 +441,32 @@ export function usePlaybackQueueController({
 
     // Loads one requested song and normalizes queue behavior across sources.
     const playSong = useCallback(async (
-        song: SongResult,
+        requestedSong: SongResult,
         queue: SongResult[] = [],
         isFmCall: boolean = false,
         options: PlaybackNavigationOptions = {}
     ) => {
+        // Extension layers (Folium `playback.beforePlay`) may cancel or redirect this play.
+        // Without an installed hook this is skipped entirely, so the common path stays synchronous.
+        // The hook is async, so a later playSong may finish its hook first; this call then drops
+        // out instead of replacing the song the user picked last.
+        // An automix advance skips the hook (see `isAutomixAdvance`).
+        const playSongCallId = ++playSongCallIdRef.current;
+        const allowedSong = !options.isAutomixAdvance && hasBeforePlayHook()
+            ? await runBeforePlayHook(requestedSong)
+            : requestedSong;
+        if (!allowedSong || playSongCallIdRef.current !== playSongCallId) {
+            return;
+        }
+        const song = allowedSong;
+        // A pause still fading out belongs to the song being replaced. Run it now instead of
+        // dropping it: the old song is still sounding and the new one can take seconds to load, so
+        // dropping it would leave the old song at full volume under a PAUSED player. The fade node
+        // is back at unity afterwards, so the new song does not start silent. The automix advance is
+        // left alone: that is the blend's own handover, and a pause pressed during it is still meant.
+        if (!options.isAutomixAdvance) {
+            playbackFade.flush();
+        }
         interruptStagePlaybackForMainTransition();
 
         console.log('[App] playSong initiated:', song.name, song.id, 'isFm:', isFmCall);
@@ -467,9 +493,12 @@ export function usePlaybackQueueController({
         const newQueue = getPlayableOnlineQueue(queueContext);
         const skipCount = options.unavailableSkipCount ?? 0;
         playbackAutoSkipCountRef.current = skipCount;
+        // For the plays this one defers (the replacement dialog, the timed skip): they start after a
+        // prompt or a countdown, so they are not the blend's advance even when this call was.
+        const deferredPlayOptions: PlaybackNavigationOptions = { ...options, isAutomixAdvance: undefined };
 
         if (!isLocal && !isNavidrome && isSongUnavailable(song)) {
-            if (await handleMarkedUnavailableSong(song, queueContext, isFmCall, options)) {
+            if (await handleMarkedUnavailableSong(song, queueContext, isFmCall, deferredPlayOptions)) {
                 return;
             }
         }
@@ -539,6 +568,17 @@ export function usePlaybackQueueController({
             }
 
             if (preloadedOnlineAudioResult.kind === 'unavailable') {
+                if (preloadedOnlineAudioResult.reason === 'preview-only' || preloadedOnlineAudioResult.reason === 'auth-required'
+                    || preloadedOnlineAudioResult.reason === 'region-restricted') {
+                    shouldAutoPlayRef.current = false;
+                    audioRef.current?.pause();
+                    setPlayerState(PlayerState.IDLE);
+                    setIsLyricsLoading(false);
+                    setStatusMsg({ type: 'error', text: t(preloadedOnlineAudioResult.reason === 'preview-only'
+                        ? 'status.songPreviewOnly' : preloadedOnlineAudioResult.reason === 'region-restricted'
+                            ? 'status.songRegionRestricted' : 'status.loginExpired') });
+                    return;
+                }
                 const nextSong = getNextPlayableQueueSong(queueContext, song);
                 const canSkip = Boolean(nextSong) && skipCount < MAX_UNAVAILABLE_AUTO_SKIP_COUNT;
 
@@ -548,7 +588,7 @@ export function usePlaybackQueueController({
                     showTimedSkipPrompt('status.songUnavailablePrompt', () => {
                         if (playbackRequestIdRef.current !== playbackRequestId) return;
                         void playSong(nextSong, newQueue, isFmCall, {
-                            ...options,
+                            ...deferredPlayOptions,
                             unavailableSkipCount: skipCount + 1,
                         });
                     });
@@ -671,6 +711,7 @@ export function usePlaybackQueueController({
         }
     }, [
         audioQuality,
+        audioRef,
         blobUrlRef,
         clearPendingUnavailableSkip,
         currentOnlineAudioUrlFetchedAtRef,
@@ -866,6 +907,7 @@ export function usePlaybackQueueController({
                     void playSong(nextQueue[currentIndex + 1], nextQueue, true, {
                         shouldNavigateToPlayer,
                         unavailableSkipCount: options?.unavailableSkipCount,
+                        isAutomixAdvance: options?.isAutomixAdvance,
                     });
                     return;
                 }
@@ -888,6 +930,7 @@ export function usePlaybackQueueController({
             void playSong(playQueue[nextIndex], playQueue, isFmMode, {
                 shouldNavigateToPlayer,
                 unavailableSkipCount: options?.unavailableSkipCount,
+                isAutomixAdvance: options?.isAutomixAdvance,
             });
         } else if (options?.allowStopOnMissing) {
             stopAtQueueEnd();

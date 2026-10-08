@@ -92,6 +92,7 @@ const FIELD_GROUPS: Record<string, ImportGroup> = {
     pendoloTuning: 'visualizer',
     sonnetTuning: 'visualizer',
     temperaTuning: 'visualizer',
+    lumiereTuning: 'visualizer',
 
     lyricsFontStyle: 'fonts',
     lyricsFontScale: 'fonts',
@@ -118,6 +119,7 @@ const FIELD_GROUPS: Record<string, ImportGroup> = {
     monetBackgroundTuning: 'background',
     nomandBackgroundTuning: 'background',
     latentBackgroundTuning: 'background',
+    soraBackgroundTuning: 'background',
     urlBackgroundList: 'background',
     urlBackgroundSelectedId: 'background',
 
@@ -161,9 +163,11 @@ const TRUTHY_GUARDED_FIELDS = new Set([
     'pendoloTuning',
     'sonnetTuning',
     'temperaTuning',
+    'lumiereTuning',
     'monetBackgroundTuning',
     'nomandBackgroundTuning',
     'latentBackgroundTuning',
+    'soraBackgroundTuning',
     'urlBackgroundSelectedId',
     // applyImportedConfig only applies the card's mode for the three known values, all truthy
     // strings, so an absent one is skipped there the same as here.
@@ -185,6 +189,7 @@ const BUNDLED_TUNING_FIELDS = new Set([
     'pendoloTuning',
     'sonnetTuning',
     'temperaTuning',
+    'lumiereTuning',
 ]);
 
 // Structural compare over the plain JSON the codec emits — enough for tunings and font arrays, and

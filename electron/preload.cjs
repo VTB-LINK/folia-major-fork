@@ -82,6 +82,11 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.on('wallpaper-transparent-refused', listener);
         return () => ipcRenderer.removeListener('wallpaper-transparent-refused', listener);
     },
+    onWallpaperEntryRequested: (callback) => {
+        const listener = () => callback();
+        ipcRenderer.on('wallpaper-entry-requested', listener);
+        return () => ipcRenderer.removeListener('wallpaper-entry-requested', listener);
+    },
     onWallpaperInputMonitorRequested: (callback) => {
         const listener = () => callback();
         ipcRenderer.on('wallpaper-input-monitor-requested', listener);
@@ -123,9 +128,12 @@ contextBridge.exposeInMainWorld('electron', {
     clearLocalCoverAssets: () => ipcRenderer.invoke('clear-local-cover-assets'),
     generateTheme: (lyricsText, options) => ipcRenderer.invoke('generate-theme', lyricsText, options),
     segmentLyrics: (lines) => ipcRenderer.invoke('segment-lyrics', lines),
+    testAiConnection: (settings) => ipcRenderer.invoke('ai-test-connection', settings),
     fetchLyricProxy: (url, init) => ipcRenderer.invoke('lyric-proxy-fetch', url, init),
     getNeteasePort: () => ipcRenderer.invoke('get-netease-port'),
     getNeteaseApiStatus: () => ipcRenderer.invoke('get-netease-api-status'),
+    getLoginDiagnostics: (providerId) => ipcRenderer.invoke('get-login-diagnostics', providerId),
+    runLoginSelfCheck: (providerId) => ipcRenderer.invoke('run-login-self-check', providerId),
     restartNeteaseApi: () => ipcRenderer.invoke('restart-netease-api'),
     onNeteaseApiStatusChanged: (callback) => {
         const listener = (_event, status) => callback(status);
@@ -134,6 +142,7 @@ contextBridge.exposeInMainWorld('electron', {
     },
     getKugouApiStatus: () => ipcRenderer.invoke('kugou-api-status'),
     kugouRequest: (operation, params) => ipcRenderer.invoke('kugou-api-request', operation, params),
+    bodianRequest: (operation, params) => ipcRenderer.invoke('bodian-api-request', operation, params),
     getQqPort: () => ipcRenderer.invoke('get-qq-port'),
     getQqApiStatus: () => ipcRenderer.invoke('get-qq-api-status'),
     onQqApiStatusChanged: (callback) => {
@@ -222,6 +231,12 @@ contextBridge.exposeInMainWorld('electron', {
     closeRemoteControl: () => ipcRenderer.invoke('remote-control-close'),
     getRemoteControlAlwaysOnTop: () => ipcRenderer.invoke('remote-control-get-always-on-top'),
     setRemoteControlAlwaysOnTop: (alwaysOnTop) => ipcRenderer.invoke('remote-control-set-always-on-top', alwaysOnTop),
+    getRemoteControlWindowSettings: () => ipcRenderer.invoke('remote-control-get-window-settings'),
+    onRemoteControlWindowSettingsChanged: (callback) => {
+        const listener = (_event, settings) => callback(settings);
+        ipcRenderer.on('remote-control-window-settings-changed', listener);
+        return () => ipcRenderer.removeListener('remote-control-window-settings-changed', listener);
+    },
     publishRemoteControlSnapshot: (snapshot) => ipcRenderer.invoke('remote-control-publish-snapshot', snapshot),
     getRemoteControlSnapshot: () => ipcRenderer.invoke('remote-control-get-snapshot'),
     sendRemoteControlCommand: (command) => ipcRenderer.invoke('remote-control-send-command', command),
@@ -279,7 +294,12 @@ contextBridge.exposeInMainWorld('electron', {
         listMods: () => ipcRenderer.invoke('folia-mods:list'),
         setModEnabled: (modId, enabled) => ipcRenderer.invoke('folia-mods:set-enabled', modId, enabled),
         reloadMods: () => ipcRenderer.invoke('folia-mods:reload'),
-        invokeModCommand: (modId, commandId, params) => ipcRenderer.invoke('folia-mods:invoke', modId, commandId, params),
+        invokeModRpc: (modId, name, args) => ipcRenderer.invoke('folia-mods:rpc', modId, name, args),
+        invokeModStorage: (modId, operation, key, value) => ipcRenderer.invoke('folia-mods:storage', modId, operation, key, value),
+        invokeModNetFetch: (modId, url, init) => ipcRenderer.invoke('folia-mods:net-fetch', modId, url, init),
+        invokeModPickFile: (modId, accept, persist) => ipcRenderer.invoke('folia-mods:pick-file', modId, accept, persist),
+        invokeModRestoreFile: (modId, grantId) => ipcRenderer.invoke('folia-mods:restore-file', modId, grantId),
+        invokeModReleaseFile: (modId, grantId) => ipcRenderer.invoke('folia-mods:release-file', modId, grantId),
         cancelExport: () => ipcRenderer.invoke('folia-mods:export-cancel'),
         pushRuntimeSnapshot: (snapshot) => ipcRenderer.invoke('folia-mods:push-runtime-snapshot', snapshot),
         getFfmpegStatus: () => ipcRenderer.invoke('folia-mods:ffmpeg-status'),

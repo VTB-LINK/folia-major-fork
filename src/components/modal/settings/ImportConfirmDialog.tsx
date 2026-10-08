@@ -81,6 +81,7 @@ const FIELD_LABEL_KEYS: Record<string, string> = {
     monetBackgroundTuning: 'options.importFieldMonetBackgroundTuning',
     nomandBackgroundTuning: 'options.importFieldNomandBackgroundTuning',
     latentBackgroundTuning: 'options.importFieldLatentBackgroundTuning',
+    soraBackgroundTuning: 'options.importFieldSoraBackgroundTuning',
     // The card's three rows reuse the settings panel's own wording. The mode row borrows the
     // section heading, which is what that group of three buttons is actually labelled by.
     stageTrackPillMode: 'options.stageTrackPill',
@@ -102,6 +103,7 @@ const TUNING_MODES: Record<string, string> = {
     pendoloTuning: 'pendolo',
     sonnetTuning: 'sonnet',
     temperaTuning: 'tempera',
+    lumiereTuning: 'lumiere',
 };
 
 interface BoxTone {

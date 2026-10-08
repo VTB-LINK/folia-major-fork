@@ -15,7 +15,7 @@ type CommandPaletteContextOverrides = {
 const createContext = (overrides: CommandPaletteContextOverrides = {}): CommandPaletteContext => {
     const base: CommandPaletteContext = {
         // The palette's original and still most common surface; the home cases say so explicitly.
-        scope: { view: 'player', filter: null, grid: null },
+        scope: { view: 'player', filter: null, grid: null, directory: null, artist: null, chrome: null },
         shared: {
             t: (_key: string, fallback?: string) => fallback ?? '',
             setStatusMsg: vi.fn(),
@@ -49,6 +49,8 @@ const createContext = (overrides: CommandPaletteContextOverrides = {}): CommandP
             next: vi.fn(),
             prev: vi.fn(),
             queue: [],
+            queuePaletteKeepOpen: false,
+            setQueuePaletteKeepOpen: vi.fn(),
             playSong: vi.fn(),
             shuffleQueue: vi.fn(),
             clearQueue: vi.fn(),
@@ -93,6 +95,10 @@ const createContext = (overrides: CommandPaletteContextOverrides = {}): CommandP
             toggleSubtitleOverlayBackground: vi.fn(),
             playbackEntryView: 'player' as const,
             setPlaybackEntryView: vi.fn(),
+            librarySuiteOptions: vi.fn(() => [{ id: 'grid', labelKey: 'libraryTui.rendererGrid' }, { id: 'tui', labelKey: 'libraryTui.rendererTui' }]),
+            activeLibrarySuite: vi.fn(() => 'grid'),
+            canChooseLibrarySuite: vi.fn(() => true),
+            chooseLibrarySuite: vi.fn(),
             ponderHintVisibility: 'always' as const,
             setPonderHintVisibility: vi.fn(),
             togglePonderTouchButton: vi.fn(),
@@ -117,7 +123,9 @@ const createContext = (overrides: CommandPaletteContextOverrides = {}): CommandP
             toggleAlwaysShowTrackSwitchButtons: vi.fn(),
             toggleAutoPlayOnLaunch: vi.fn(),
             toggleTranscodeFallback: vi.fn(),
+            togglePlaybackFade: vi.fn(),
             toggleAlwaysShowMainWindowTitlebar: vi.fn(),
+            toggleHideFullscreenButton: vi.fn(),
             toggleNativeMacFullscreenButton: vi.fn(),
             toggleAutoHideCursorWithPlayerChrome: vi.fn(),
             canAutoScanLocalLibrary: vi.fn(() => false),
@@ -129,6 +137,10 @@ const createContext = (overrides: CommandPaletteContextOverrides = {}): CommandP
             toggleVoiceInputPause: vi.fn(),
             togglePreventDisplaySleepDuringPlayback: vi.fn(),
             toggleWallpaperMode: vi.fn(),
+            toggleCloseToTray: vi.fn(),
+            toggleHideRemoteControlTitlebar: vi.fn(),
+            unlockRemoteControl: vi.fn(),
+            toggleObsKeepMainWindowAnimation: vi.fn(),
             toggleWallpaperMacAutohideDock: vi.fn(),
             sleepTimerEnabled: false,
             setSleepTimerEnabled: vi.fn(),
@@ -157,9 +169,12 @@ const createContext = (overrides: CommandPaletteContextOverrides = {}): CommandP
             visualizerBackgroundMode: 'latent',
             setVisualizerMode: vi.fn(),
             toggleRandomVisualizerModePerSong: vi.fn(),
+            toggleGlowBlurQuantize: vi.fn(),
             setVisualizerBackgroundMode: vi.fn(),
             setMonetBackgroundTuning: vi.fn(),
             setLatentBackgroundTuning: vi.fn(),
+            toggleVideoLayer: vi.fn(),
+            pickVideoLayerFile: vi.fn(async () => null),
             usesWordSegmentation: true,
             lyricSegmentation: {
                 record: null,
@@ -828,6 +843,15 @@ describe('command palette registry', () => {
         expect(match.command.id).toBe('visualizer-toggle-random-per-song');
         match.command.execute('', context);
         expect(context.visualizer.toggleRandomVisualizerModePerSong).toHaveBeenCalled();
+    });
+
+    it('toggles the stepped glow radius', () => {
+        const context = createContext();
+        const [match] = getCommandPaletteMatches('发光半径分档');
+
+        expect(match.command.id).toBe('visualizer-toggle-glow-blur-quantize');
+        match.command.execute('', context);
+        expect(context.visualizer.toggleGlowBlurQuantize).toHaveBeenCalled();
     });
 });
 

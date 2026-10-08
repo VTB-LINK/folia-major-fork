@@ -62,10 +62,12 @@ export const buildSyncedVisualSettings = (state: SyncableSettingsState): SyncedV
     monetBackgroundTuning: state.monetBackgroundTuning,
     nomandBackgroundTuning: state.nomandBackgroundTuning,
     latentBackgroundTuning: state.latentBackgroundTuning,
+    soraBackgroundTuning: state.soraBackgroundTuning,
     monetTuning: state.monetTuning,
     pendoloTuning: state.pendoloTuning,
     sonnetTuning: state.sonnetTuning,
     temperaTuning: state.temperaTuning,
+    lumiereTuning: state.lumiereTuning,
     urlBackgroundList: state.urlBackgroundList,
     urlBackgroundSelectedId: state.urlBackgroundSelectedId,
     homeLayoutStyle: state.homeLayoutStyle,
@@ -127,10 +129,12 @@ export const applySyncedVisualSettings = (
     if (settings.monetBackgroundTuning !== undefined) state.handleSetMonetBackgroundTuning(settings.monetBackgroundTuning as Parameters<SyncableSettingsState['handleSetMonetBackgroundTuning']>[0]);
     if (settings.nomandBackgroundTuning !== undefined) state.handleSetNomandBackgroundTuning(settings.nomandBackgroundTuning as Parameters<SyncableSettingsState['handleSetNomandBackgroundTuning']>[0]);
     if (settings.latentBackgroundTuning !== undefined) state.handleSetLatentBackgroundTuning(settings.latentBackgroundTuning as Parameters<SyncableSettingsState['handleSetLatentBackgroundTuning']>[0]);
+    if (settings.soraBackgroundTuning !== undefined) state.handleSetSoraBackgroundTuning(settings.soraBackgroundTuning as Parameters<SyncableSettingsState['handleSetSoraBackgroundTuning']>[0]);
     if (settings.visualizerTunings === undefined && settings.monetTuning !== undefined) state.handleSetMonetTuning(settings.monetTuning as Parameters<SyncableSettingsState['handleSetMonetTuning']>[0]);
     if (settings.visualizerTunings === undefined && settings.pendoloTuning !== undefined) state.handleSetPendoloTuning(settings.pendoloTuning as Parameters<SyncableSettingsState['handleSetPendoloTuning']>[0]);
     if (settings.visualizerTunings === undefined && settings.sonnetTuning !== undefined) state.handleSetSonnetTuning(settings.sonnetTuning as Parameters<SyncableSettingsState['handleSetSonnetTuning']>[0]);
     if (settings.visualizerTunings === undefined && settings.temperaTuning !== undefined) state.handleSetTemperaTuning(settings.temperaTuning as Parameters<SyncableSettingsState['handleSetTemperaTuning']>[0]);
+    if (settings.visualizerTunings === undefined && settings.lumiereTuning !== undefined) state.handleSetLumiereTuning(settings.lumiereTuning as Parameters<SyncableSettingsState['handleSetLumiereTuning']>[0]);
     if (settings.urlBackgroundList !== undefined) state.handleSetUrlBackgroundList(settings.urlBackgroundList as Parameters<SyncableSettingsState['handleSetUrlBackgroundList']>[0]);
     if (settings.urlBackgroundSelectedId !== undefined) state.handleSetUrlBackgroundSelectedId(settings.urlBackgroundSelectedId);
     if (settings.homeLayoutStyle !== undefined) state.handleSetHomeLayoutStyle(settings.homeLayoutStyle);

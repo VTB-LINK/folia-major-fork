@@ -7,6 +7,7 @@ import {
     type ClassicTuning,
     type CladdaghTuning,
     type FumeTuning,
+    type LumiereTuning,
     type MonetPortraitImage,
     type MonetTuning,
     type PartitaTuning,
@@ -23,6 +24,11 @@ import { colorWithAlpha } from './colorMix';
 import FontFallbackStackControl from './FontFallbackStackControl';
 import { VISUALIZER_REGISTRY, getVisualizerModeLabel, type VisualizerRegistryEntry } from './registry';
 import { type VisPlaygroundEditSection } from './VisPlaygroundPreviewHotspots';
+import { FoliumTuningCards } from '@/mods/folium/registries/tunings';
+import { visualizersRegistry } from '@/mods/folium/registries/visualizers';
+import { backgroundsRegistry } from '@/mods/folium/registries/backgrounds';
+import { useFoliumRegistryEntries } from '@/mods/folium/registry';
+import { useMissingFoliumSelections } from '@/mods/folium/missingEntries';
 import { type PreviewPlaceholderId } from './PreviewPlaceholder';
 import type { VisualizerBackgroundActions, VisualizerBackgroundConfig } from './backgrounds/definition';
 import {
@@ -107,6 +113,8 @@ interface VisPlaygroundSettingsPanelProps {
     onSonnetTuningChange?: (patch: Partial<SonnetTuning>) => void;
     temperaTuning?: TemperaTuning;
     onTemperaTuningChange?: (patch: Partial<TemperaTuning>) => void;
+    lumiereTuning?: LumiereTuning;
+    onLumiereTuningChange?: (patch: Partial<LumiereTuning>) => void;
     cappellaTuning: CappellaTuning;
     cappellaCustomEmojiImages: CappellaEmojiImage[];
     onCappellaTuningChange?: (patch: Partial<CappellaTuning>) => void;
@@ -159,6 +167,13 @@ interface VisPlaygroundSettingsPanelProps {
     onSliderPointerDown?: () => void;
     onSliderCommit?: () => void;
 }
+
+// Modes that size their own lyrics: the generic font-size controls are disabled and this notice explains why.
+const LYRICS_FONT_SIZE_AUTO_NOTICE_KEYS: Partial<Record<string, string>> = {
+    sonnet: 'options.sonnetFontSizeAutoNotice',
+    tempera: 'options.temperaFontSizeAutoNotice',
+    lumiere: 'options.lumiereFontSizeAutoNotice',
+};
 
 const SECTION_OPTIONS: VisPlaygroundEditSection[] = ['common', 'background', 'visualizer', 'subtitle'];
 
@@ -371,6 +386,8 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
         onSonnetTuningChange,
         temperaTuning,
         onTemperaTuningChange,
+        lumiereTuning,
+        onLumiereTuningChange,
         monetPortraitImage,
         onUploadMonetPortraitImage,
         onClearMonetPortraitImage,
@@ -406,6 +423,7 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
         onSliderPointerDown,
         onSliderCommit,
     } = props;
+    const lyricsFontSizeAutoNoticeKey = LYRICS_FONT_SIZE_AUTO_NOTICE_KEYS[visualizerMode] ?? null;
     const [fontWeightSliderValue, setFontWeightSliderValue] = useState(fontWeight ?? 400);
     const [subtitleFontWeightSliderValue, setSubtitleFontWeightSliderValue] = useState(subtitleFontWeight ?? 400);
 
@@ -416,12 +434,18 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
         if (subtitleFontWeight !== null) setSubtitleFontWeightSliderValue(subtitleFontWeight);
     }, [subtitleFontWeight]);
 
+    // Mod modes and backgrounds come and go at runtime (Folium registries), so the
+    // option lists recompute on registry changes, not only on language changes.
+    const foliumVisualizerEntries = useFoliumRegistryEntries(visualizersRegistry);
+    const foliumBackgroundEntries = useFoliumRegistryEntries(backgroundsRegistry);
+    const missingFoliumSelections = useMissingFoliumSelections();
     const modeOptions = useMemo(() => (
         VISUALIZER_REGISTRY.map(entry => ({
             label: getVisualizerModeLabel(entry.mode, t),
             value: entry.mode,
         }))
-    ), [t]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    ), [t, foliumVisualizerEntries]);
     const [subtitleFontFamilyDraft, setSubtitleFontFamilyDraft] = useState(subtitleFontFamily ?? '');
 
     useEffect(() => {
@@ -436,7 +460,16 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
             value: entry.mode,
             label: getVisualizerBackgroundModeLabel(entry.mode, t),
         }))
-    ), [t]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    ), [t, foliumBackgroundEntries]);
+    const renderMissingFoliumHint = (kind: 'visualizer' | 'background') => {
+        const missing = missingFoliumSelections.find(entry => entry.kind === kind);
+        return missing ? (
+            <div className="text-xs opacity-70" style={{ color: theme.secondaryColor }}>
+                {t('options.foliumMissingSelection').replace('{{modId}}', missing.modId)}
+            </div>
+        ) : null;
+    };
 
     return (
         <div className="min-h-0 flex flex-col gap-4">
@@ -490,8 +523,8 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
                         />
 
                         <fieldset
-                            disabled={visualizerMode === 'sonnet' || visualizerMode === 'tempera'}
-                            className={`space-y-4 transition-opacity ${visualizerMode === 'sonnet' || visualizerMode === 'tempera' ? 'opacity-40' : ''}`}
+                            disabled={lyricsFontSizeAutoNoticeKey !== null}
+                            className={`space-y-4 transition-opacity ${lyricsFontSizeAutoNoticeKey !== null ? 'opacity-40' : ''}`}
                         >
                             <PresetGroup
                                 label={t('options.fontSize')}
@@ -523,7 +556,7 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
                             </div>
                         </fieldset>
 
-                        {(visualizerMode === 'sonnet' || visualizerMode === 'tempera') && (
+                        {lyricsFontSizeAutoNoticeKey !== null && (
                             <div
                                 className="rounded-2xl border px-3.5 py-3 text-xs leading-relaxed"
                                 style={{
@@ -532,7 +565,7 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
                                     backgroundColor: colorWithAlpha(theme.accentColor, isDaylight ? 0.06 : 0.1),
                                 }}
                             >
-                                {t(visualizerMode === 'tempera' ? 'options.temperaFontSizeAutoNotice' : 'options.sonnetFontSizeAutoNotice')}
+                                {t(lyricsFontSizeAutoNoticeKey)}
                             </div>
                         )}
 
@@ -642,6 +675,7 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
                                 isDaylight={isDaylight}
                                 theme={theme}
                             />
+                            {renderMissingFoliumHint('background')}
                         </div>
 
                         {backgroundEntry.renderSettingsPanel?.({
@@ -685,6 +719,7 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
                                 isDaylight={isDaylight}
                                 theme={theme}
                             />
+                            {renderMissingFoliumHint('visualizer')}
                         </div>
 
                         {visualizerEntry.renderSettingsPanel?.({
@@ -726,6 +761,8 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
                             onSonnetTuningChange,
                             temperaTuning,
                             onTemperaTuningChange,
+                            lumiereTuning,
+                            onLumiereTuningChange,
                             monetPortraitImage,
                             onUploadMonetPortraitImage,
                             onClearMonetPortraitImage,
@@ -733,6 +770,16 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
                             onSliderPointerDown,
                             onSliderCommit,
                         })}
+
+                        {/* Folium tunings other mods registered for this mode (registries.tunings). */}
+                        <FoliumTuningCards
+                            mode={visualizerMode}
+                            theme={theme}
+                            isDaylight={isDaylight}
+                            controlCardBg={controlCardBg}
+                            rangeInputClass={rangeInputClass}
+                            description={t('options.foliumTuningDesc')}
+                        />
                     </>
                 )}
 
@@ -769,6 +816,7 @@ const VisPlaygroundSettingsPanel: React.FC<VisPlaygroundSettingsPanelProps> = (p
                             options={[
                                 { label: t('options.subtitleContentTranslation'), value: 'translation' },
                                 { label: t('options.subtitleContentRomanization'), value: 'romanization' },
+                                { label: t('options.subtitleContentBoth'), value: 'both' },
                                 { label: t('options.subtitleContentNone'), value: 'none' },
                             ]}
                             onChange={onSubtitleContentModeChange ?? (mode => onToggleShowSubtitleTranslation?.(mode !== 'none'))}

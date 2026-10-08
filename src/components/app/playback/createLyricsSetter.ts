@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction, MutableRefObject } from 'react';
 import type { LyricData, SongResult } from '../../../types';
 import { applyLyricDisplayFilter } from '../../../utils/lyrics/filtering';
+import { isPureMusicLyricLines } from '../../../utils/lyrics/pureMusic';
 import { applyLyricStaffPolicy } from '../../../utils/lyrics/staffCreditsPolicy';
 import type { LyricStaffPolicyOptions } from '../../../utils/lyrics/staffCreditsPolicy';
 import { ensureLyricDataRenderHints } from '../../../utils/lyrics/renderHints';
@@ -9,6 +10,7 @@ import { getLyricSegmentationRecord } from '../../../stores/useLyricSegmentation
 import { applyDetectedChorusEffects, applyNeteaseChorusByTime } from '../../../utils/lyrics/chorusEffects';
 import type { NeteaseChorusRange } from '../../../utils/lyrics/chorusEffects';
 import { getPlaybackSongKey } from '../../../utils/appPlaybackGuards';
+import { applyLyricsTransform, untransformedLyrics } from '../../../services/hostExtensionHooks';
 
 // src/components/app/playback/createLyricsSetter.ts
 
@@ -45,7 +47,10 @@ export const createLyricsSetter = (
     let lastSongId: number | string | null = null;
     let cachedNeteaseChorusRanges: NeteaseChorusRange[] | null = null;
 
-    return (nextLyrics: LyricData | null) => {
+    return (incomingLyrics: LyricData | null) => {
+        // Lyrics already on screen (e.g. re-applied after an automix cancel) re-enter from
+        // their pre-transform source, so the extension transform below never stacks.
+        const nextLyrics = untransformedLyrics(incomingLyrics);
         const currentSong = currentSongFullRef?.current ?? null;
         const currentSongId = currentSong ? getPlaybackSongKey(currentSong) : null;
 
@@ -55,7 +60,11 @@ export const createLyricsSetter = (
         }
 
         // 通用过滤是用户的显式指令，先跑；staff 策略只处理它没删掉的开头块。
-        let processed = applyLyricStaffPolicy(applyLyricDisplayFilter(nextLyrics, lyricFilterPattern), staffOptions);
+        // 歌词行整体就是“纯音乐，请欣赏”这类提示语时按无歌词处理（与 provider 判为纯音乐时一致），
+        // 让 visualizer 走纯音乐路径，而不是把提示语当歌词渲染。provider 没覆盖到的来源（本地、QQ 等）靠这里兜底。
+        let processed = nextLyrics && isPureMusicLyricLines(nextLyrics.lines)
+            ? null
+            : applyLyricStaffPolicy(applyLyricDisplayFilter(nextLyrics, lyricFilterPattern), staffOptions);
         if (processed) {
             const hasChorus = processed.lines.some(line => line.isChorus);
             if (hasChorus) {
@@ -92,7 +101,8 @@ export const createLyricsSetter = (
             // with no song identity and so cannot look up a per-song override themselves. Last in
             // the chain, so it sees the lines that actually survived filtering.
             processed = applyLyricWordSegmentation(processed, getLyricSegmentationRecord());
-            setLyricsState(ensureLyricDataRenderHints(processed));
+            // Extension layers (Folium `lyrics.transform`) see the finished lyrics once per load.
+            setLyricsState(applyLyricsTransform(ensureLyricDataRenderHints(processed)));
         } else {
             setLyricsState(null);
         }

@@ -2,6 +2,7 @@ import {
     DEFAULT_CLADDAGH_TUNING,
     DEFAULT_DIORAMA_TUNING,
     DEFAULT_LATENT_BACKGROUND_TUNING,
+    DEFAULT_SORA_BACKGROUND_TUNING,
     DEFAULT_MONET_BACKGROUND_TUNING,
     DEFAULT_MONET_TUNING,
     DEFAULT_NOMAND_BACKGROUND_TUNING,
@@ -11,6 +12,7 @@ import {
     type DualTheme,
     type Theme,
 } from '../types';
+import { normalizeLumiereTuning } from './lumiereTuning';
 
 // src/utils/appearanceCodec.ts
 // The shareable appearance config codec: theme + visual settings <-> the minified `folia-theme://`
@@ -321,6 +323,13 @@ const decompressLatentBackground = (o: any): any => ({
     overlayOpacity: o.oo !== undefined ? o.oo : DEFAULT_LATENT_BACKGROUND_TUNING.overlayOpacity,
 });
 
+const compressSoraBackground = (t: any): any => ({
+    bl: t.blank,
+});
+const decompressSoraBackground = (o: any): any => ({
+    blank: o.bl !== undefined ? o.bl : DEFAULT_SORA_BACKGROUND_TUNING.blank,
+});
+
 const compressMonet = (t: any): any => ({
     kce: t.keywordColoringEnabled,
     msd: t.showDescription,
@@ -451,6 +460,39 @@ const decompressTempera = (o: any): any => ({
     postProcessLensDistortion: o.ppld !== undefined ? o.ppld : DEFAULT_TEMPERA_TUNING.postProcessLensDistortion,
 });
 
+// 绘光：短键只在短码里出现；解压后统一走 normalizeLumiereTuning 钳制和补默认值。
+const LUMIERE_SHORT_KEYS = {
+    lightIntensity: 'li',
+    audioResponse: 'ar',
+    fogDensity: 'fd',
+    darkField: 'df',
+    moteAmount: 'ma',
+    bloom: 'bl',
+    textBloom: 'tb',
+    unlitOpacity: 'uo',
+    windowNeighbors: 'wn',
+    decay: 'dc',
+    echo: 'ec',
+    fogOctaves: 'fo',
+    lineArt: 'la',
+    frontBokeh: 'fb',
+    trails: 'tr',
+    hideTrails: 'ht',
+    seamlessTransitions: 'st',
+    overlayFrame: 'of',
+    textOnly: 'txo',
+    keywordColors: 'kc',
+    themeIcons: 'thi',
+    themeColorMix: 'tcm',
+    renderQuality: 'rq',
+} as const;
+const compressLumiere = (t: any): any => Object.fromEntries(
+    Object.entries(LUMIERE_SHORT_KEYS).map(([key, short]) => [short, t[key]]),
+);
+const decompressLumiere = (o: any) => normalizeLumiereTuning(Object.fromEntries(
+    Object.entries(LUMIERE_SHORT_KEYS).map(([key, short]) => [key, o?.[short]]),
+));
+
 export const compressConfig = (config: any): string => {
     const minified: any = {};
     if (config.theme) {
@@ -500,10 +542,14 @@ export const compressConfig = (config: any): string => {
     if (config.monetBackgroundTuning) minified.mbt = compressMonetBackground(config.monetBackgroundTuning);
     if (config.nomandBackgroundTuning) minified.nbt = compressNomandBackground(config.nomandBackgroundTuning);
     if (config.latentBackgroundTuning) minified.lbt = compressLatentBackground(config.latentBackgroundTuning);
+    if (config.soraBackgroundTuning) minified.sbt = compressSoraBackground(config.soraBackgroundTuning);
     if (config.monetTuning) minified.mt = compressMonet(config.monetTuning);
     if (config.pendoloTuning) minified.pdt = compressPendolo(config.pendoloTuning);
     if (config.sonnetTuning) minified.snt = compressSonnet(config.sonnetTuning);
     if (config.temperaTuning) minified.tmp = compressTempera(config.temperaTuning);
+    if (config.lumiereTuning) minified.lmt = compressLumiere(config.lumiereTuning);
+    // Folium param values are already plain JSON keyed by scope; stored as-is.
+    if (config.foliumParams) minified.fp = config.foliumParams;
     if (config.urlBackgroundList) minified.ubl = config.urlBackgroundList;
     if (config.urlBackgroundSelectedId) minified.ubid = config.urlBackgroundSelectedId;
     if (config.songThemeAutoSwitchEnabled !== undefined) minified.stas = config.songThemeAutoSwitchEnabled;
@@ -623,10 +669,13 @@ export const decompressConfig = (str: string): any => {
         if (parsed.mbt) decompressed.monetBackgroundTuning = decompressMonetBackground(parsed.mbt);
         if (parsed.nbt) decompressed.nomandBackgroundTuning = decompressNomandBackground(parsed.nbt);
         if (parsed.lbt) decompressed.latentBackgroundTuning = decompressLatentBackground(parsed.lbt);
+        if (parsed.sbt) decompressed.soraBackgroundTuning = decompressSoraBackground(parsed.sbt);
         if (parsed.mt) decompressed.monetTuning = decompressMonet(parsed.mt);
         if (parsed.pdt) decompressed.pendoloTuning = decompressPendolo(parsed.pdt);
         if (parsed.snt) decompressed.sonnetTuning = decompressSonnet(parsed.snt);
         if (parsed.tmp) decompressed.temperaTuning = decompressTempera(parsed.tmp);
+        if (parsed.lmt) decompressed.lumiereTuning = decompressLumiere(parsed.lmt);
+        if (parsed.fp) decompressed.foliumParams = parsed.fp;
         if (parsed.ubl) decompressed.urlBackgroundList = parsed.ubl;
         if (parsed.ubid) decompressed.urlBackgroundSelectedId = parsed.ubid;
         if (parsed.stas !== undefined) decompressed.songThemeAutoSwitchEnabled = parsed.stas;
@@ -649,8 +698,8 @@ export const decompressConfig = (str: string): any => {
             'subtitleFontInheritsLyrics', 'subtitleFontScale', 'subtitleFontStyle', 'subtitleFontWeight', 'subtitleFontFamily',
             'subtitleFontFallbackFamilies', 'visualizerTunings', 'classicTuning',
             'cadenzaTuning', 'partitaTuning', 'fumeTuning', 'claddaghTuning', 'cappellaTuning',
-            'tiltTuning', 'dioramaTuning', 'monetBackgroundTuning', 'nomandBackgroundTuning', 'latentBackgroundTuning', 'monetTuning',
-            'pendoloTuning', 'sonnetTuning', 'temperaTuning',
+            'tiltTuning', 'dioramaTuning', 'monetBackgroundTuning', 'nomandBackgroundTuning', 'latentBackgroundTuning', 'soraBackgroundTuning', 'monetTuning',
+            'pendoloTuning', 'sonnetTuning', 'temperaTuning', 'lumiereTuning', 'foliumParams',
             'urlBackgroundList', 'urlBackgroundSelectedId',
             'songThemeAutoSwitchEnabled', 'songThemeAutoGenerateEnabled', 'themeGenerationSource', 'followSystemTheme',
             'stageTrackPillMode', 'stageTrackPillTimeoutSec', 'stageTrackPillOnHome',

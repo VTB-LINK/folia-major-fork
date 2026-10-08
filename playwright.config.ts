@@ -14,6 +14,10 @@ const chromiumCandidates = [
 const chromiumExecutablePath = chromiumCandidates.find(candidate => existsSync(candidate));
 
 export default defineConfig({
+  // 每个 worker 都是一个完整 dev 模式应用加浏览器，默认的「CPU 核数一半」会把机器压满：
+  // 20 线程机器上 10 个 worker 负载到 23，页面挂载要 16–19s，十几条用例在各种等待上超时，
+  // 整轮反而要 16 分钟。5 个 worker 只剩真实失败，整轮约 14 分钟。
+  workers: 5,
   fullyParallel: false,
   reporter: 'line',
   timeout: 90_000,
@@ -68,7 +72,9 @@ export default defineConfig({
   // 靠的是每次导航时 addInitScript 里的 localStorage.clear()：共享 context 会让 init script
   // 累积、localStorage 跨用例串。8 个 spec 省下的那点时间不值这个风险。
   webServer: {
-    command: 'cross-env VITE_NETEASE_API_BASE=http://127.0.0.1:4173/__mock_netease__ npm run dev -- --host 127.0.0.1 --port 4173 --strictPort',
+    // 应用和组件回归都显式启用开发验证 suite，不依赖开发者的 .env.local。
+    // 初始选择钉在 grid：截图基线与现有用例都假设没选过 suite 的人看到网格（开发阶段的初始选择是 bravais）。
+    command: 'cross-env VITE_LIBRARY_TUI=true VITE_LIBRARY_INITIAL_SUITE=grid VITE_NETEASE_API_BASE=http://127.0.0.1:4173/__mock_netease__ npm run dev -- --host 127.0.0.1 --port 4173 --strictPort',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: true,
     timeout: 120_000,

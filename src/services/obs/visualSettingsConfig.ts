@@ -80,10 +80,12 @@ export function buildVisualSettingsConfig(): Record<string, unknown> {
     monetBackgroundTuning: storeVisualizer.monetBackgroundTuning,
     nomandBackgroundTuning: storeVisualizer.nomandBackgroundTuning,
     latentBackgroundTuning: storeVisualizer.latentBackgroundTuning,
+    soraBackgroundTuning: storeVisualizer.soraBackgroundTuning,
     monetTuning: storeVisualizer.monetTuning,
     pendoloTuning: storeVisualizer.pendoloTuning,
     sonnetTuning: storeVisualizer.sonnetTuning,
     temperaTuning: storeVisualizer.temperaTuning,
+    lumiereTuning: storeVisualizer.lumiereTuning,
     urlBackgroundList: storeVisualizer.urlBackgroundList,
     urlBackgroundSelectedId: storeVisualizer.urlBackgroundSelectedId,
     // The now playing card. Not a visualizer setting, but it is chrome the listener sees over the

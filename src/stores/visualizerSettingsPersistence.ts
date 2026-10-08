@@ -1,4 +1,4 @@
-import { DEFAULT_CADENZA_TUNING, DEFAULT_CAPPELLA_TUNING, DEFAULT_CLADDAGH_TUNING, DEFAULT_CLASSIC_TUNING, DEFAULT_DIORAMA_TUNING, DEFAULT_FUME_TUNING, DEFAULT_LATENT_BACKGROUND_TUNING, DEFAULT_MONET_BACKGROUND_TUNING, DEFAULT_MONET_TUNING, DEFAULT_NOMAND_BACKGROUND_TUNING, DEFAULT_PARTITA_TUNING, DEFAULT_PENDOLO_TUNING, DEFAULT_SONNET_TUNING, DEFAULT_TEMPERA_LAYER_IMAGE, DEFAULT_TEMPERA_TUNING, DEFAULT_TILT_TUNING, DIORAMA_PARTICLE_DENSITY_MAX, DIORAMA_PARTICLE_DENSITY_MIN, DIORAMA_PARTICLE_GLOW_INTENSITY_MAX, DIORAMA_PARTICLE_GLOW_INTENSITY_MIN, DIORAMA_PARTICLE_SIZE_MAX, DIORAMA_PARTICLE_SIZE_MIN, TEMPERA_MAX_LAYER_IMAGES, type CadenzaTuning, type CappellaAvatarSource, type CappellaTuning, type ClassicTuning, type CladdaghTuning, type DioramaTuning, type FumeTuning, type LatentBackgroundColorSource, type LatentBackgroundDisplayMode, type LatentBackgroundTuning, type MonetBackgroundLayout, type MonetBackgroundSource, type MonetBackgroundTuning, type MonetBackgroundWashColorMode, type MonetPortraitSource, type MonetTuning, type NomandBackgroundDitheringType, type NomandBackgroundEffect, type NomandBackgroundSource, type NomandBackgroundTuning, type PartitaTuning, type PendoloTuning, type SonnetTuning, type TemperaLayerImage, type TemperaTuning, type TiltTuning, type UrlBackgroundItem, type VisualizerBackgroundMode, type VisualizerFrameRate, type VisualizerMode } from '../types';
+import { DEFAULT_CADENZA_TUNING, DEFAULT_CAPPELLA_TUNING, DEFAULT_CLADDAGH_TUNING, DEFAULT_CLASSIC_TUNING, DEFAULT_DIORAMA_TUNING, DEFAULT_FUME_TUNING, DEFAULT_LATENT_BACKGROUND_TUNING, DEFAULT_LUMIERE_TUNING, DEFAULT_MONET_BACKGROUND_TUNING, DEFAULT_MONET_TUNING, DEFAULT_NOMAND_BACKGROUND_TUNING, DEFAULT_PARTITA_TUNING, DEFAULT_PENDOLO_TUNING, DEFAULT_SONNET_TUNING, DEFAULT_SORA_BACKGROUND_TUNING, DEFAULT_TEMPERA_LAYER_IMAGE, DEFAULT_TEMPERA_TUNING, DEFAULT_TILT_TUNING, DIORAMA_PARTICLE_DENSITY_MAX, DIORAMA_PARTICLE_DENSITY_MIN, DIORAMA_PARTICLE_GLOW_INTENSITY_MAX, DIORAMA_PARTICLE_GLOW_INTENSITY_MIN, DIORAMA_PARTICLE_SIZE_MAX, DIORAMA_PARTICLE_SIZE_MIN, TEMPERA_MAX_LAYER_IMAGES, type CadenzaTuning, type CappellaAvatarSource, type CappellaTuning, type ClassicTuning, type CladdaghTuning, type DioramaTuning, type FumeTuning, type LatentBackgroundColorSource, type LatentBackgroundDisplayMode, type LatentBackgroundTuning, type LumiereTuning, type MonetBackgroundLayout, type MonetBackgroundSource, type MonetBackgroundTuning, type MonetBackgroundWashColorMode, type MonetPortraitSource, type MonetTuning, type NomandBackgroundDitheringType, type NomandBackgroundEffect, type NomandBackgroundSource, type NomandBackgroundTuning, type PartitaTuning, type PendoloTuning, type SonnetTuning, type SoraBackgroundTuning, type TemperaLayerImage, type TemperaTuning, type TiltTuning, type UrlBackgroundItem, type VisualizerBackgroundMode, type VisualizerFrameRate, type VisualizerMode } from '../types';
 // 只做字符串校验，走 types/visualizerModes 而不是 registry：后者的 eager glob 会把 13 个
 // renderer（含 three.js）拉进来，而这里读的只是一个 localStorage 字符串。
 // mod 模式在启动时本来就看不到——bootstrap.tsx 的 restoreStoredModVisualizer 在 mods 注册完
@@ -12,6 +12,7 @@ import {
 import { resolveDioramaMoteCircumference, resolveDioramaMoteRadial } from '../components/visualizer/diorama/dioramaMoteField';
 import { parseVisualizerFrameRate, VISUALIZER_FRAME_RATE_STORAGE_KEY } from '../utils/frameRateLimiter';
 import { sanitizeUrlBackgroundList } from '../utils/urlBackground';
+import { normalizeLumiereTuning } from '../utils/lumiereTuning';
 
 export const VISUALIZER_OPACITY_STORAGE_KEY = 'visualizer_opacity';
 
@@ -455,6 +456,19 @@ export const readStoredTemperaTuning = (): TemperaTuning => {
     }
 };
 
+export const LUMIERE_TUNING_STORAGE_KEY = 'lumiere_tuning';
+
+export const readStoredLumiereTuning = (): LumiereTuning => {
+    if (typeof window === 'undefined') return DEFAULT_LUMIERE_TUNING;
+    const saved = localStorage.getItem(LUMIERE_TUNING_STORAGE_KEY);
+    if (!saved) return DEFAULT_LUMIERE_TUNING;
+    try {
+        return normalizeLumiereTuning(JSON.parse(saved));
+    } catch {
+        return DEFAULT_LUMIERE_TUNING;
+    }
+};
+
 export const resolveCappellaAvatarSource = (source: CappellaAvatarSource | undefined): CappellaAvatarSource => (
     source === 'builtin' || source === 'color' || source === 'cover' || source === 'custom'
         ? source
@@ -889,6 +903,27 @@ export const readStoredLatentBackgroundTuning = (): LatentBackgroundTuning => {
         return resolveStoredLatentBackgroundTuning(JSON.parse(saved) as Partial<LatentBackgroundTuning>);
     } catch {
         return DEFAULT_LATENT_BACKGROUND_TUNING;
+    }
+};
+
+export const resolveStoredSoraBackgroundTuning = (
+    parsed: Partial<SoraBackgroundTuning>,
+): SoraBackgroundTuning => ({
+    blank: typeof parsed.blank === 'boolean' ? parsed.blank : DEFAULT_SORA_BACKGROUND_TUNING.blank,
+});
+
+export const readStoredSoraBackgroundTuning = (): SoraBackgroundTuning => {
+    if (typeof window === 'undefined') {
+        return DEFAULT_SORA_BACKGROUND_TUNING;
+    }
+
+    const saved = localStorage.getItem('sora_background_tuning');
+    if (!saved) return DEFAULT_SORA_BACKGROUND_TUNING;
+
+    try {
+        return resolveStoredSoraBackgroundTuning(JSON.parse(saved) as Partial<SoraBackgroundTuning>);
+    } catch {
+        return DEFAULT_SORA_BACKGROUND_TUNING;
     }
 };
 

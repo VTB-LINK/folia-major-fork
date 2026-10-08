@@ -1,4 +1,4 @@
-import { Command, Database, FlaskConical, Keyboard, Languages, PlayCircle, Server, Sparkles, Terminal, type LucideIcon } from 'lucide-react';
+import { Boxes, Command, Database, FlaskConical, Gauge, Keyboard, Languages, PlayCircle, Server, Sparkles, Terminal, type LucideIcon } from 'lucide-react';
 import { SETTINGS_ANCHOR_DEFINITIONS, type SettingsAnchorId } from './settingsAnchorModel';
 import { LATTICE_ENABLED } from '../../../../utils/foliaFork';
 // src/components/modal/settings/navigation/settingsNavModel.ts
@@ -12,6 +12,8 @@ export type SettingsSectionId =
     | 'integration'
     | 'storage'
     | 'desktop'
+    | 'graphics'
+    | 'mods'
     | 'lab'
     | 'developer';
 
@@ -87,14 +89,24 @@ export const SETTINGS_NAV_GROUP_SPECS: GroupSpec[] = [
         labelKey: 'options.settingsGroupSystem',
         sections: [
             { id: 'desktop', icon: Command, labelKey: 'options.desktopSettings', descriptionKey: 'options.desktopSettingsPanelDesc', electronOnly: true },
+            { id: 'graphics', icon: Gauge, labelKey: 'options.graphicsSettings', descriptionKey: 'options.graphicsSettingsDesc' },
+            // The loader only exists in the desktop main process; on web there is nothing to switch on.
+            { id: 'mods', icon: Boxes, labelKey: 'options.modSettings', descriptionKey: 'options.modSettingsDesc', electronOnly: true },
             { id: 'lab', icon: FlaskConical, labelKey: 'options.labSettings', descriptionKey: 'options.labSettingsDesc' },
             { id: 'developer', icon: Terminal, labelKey: 'options.developerSettings', descriptionKey: 'options.developerSettingsDesc' },
         ],
     },
 ];
 
-/** Resolves the grouping into translated nav items, dropping desktop-only sections (and groups left empty) on web. */
-export const buildSettingsNavGroups = (t: Translate, options: { isElectron: boolean }): SettingsNavGroup[] => (
+/**
+ * Resolves the grouping into translated nav items, dropping desktop-only sections (and groups left empty) on web.
+ * An anchor that marks itself `requiresLibrarySuiteChoice` is listed only when `hasLibrarySuiteChoice` is set,
+ * because its section renders nothing while a single library suite is available.
+ */
+export const buildSettingsNavGroups = (
+    t: Translate,
+    options: { isElectron: boolean; hasLibrarySuiteChoice?: boolean },
+): SettingsNavGroup[] => (
     SETTINGS_NAV_GROUP_SPECS
         .map(group => ({
             id: group.id,
@@ -111,6 +123,7 @@ export const buildSettingsNavGroups = (t: Translate, options: { isElectron: bool
                             definition.section === section.id
                             && (!('electronOnly' in definition) || !definition.electronOnly || options.isElectron)
                             && (!('latticeGated' in definition) || !definition.latticeGated || LATTICE_ENABLED)
+                            && (!('requiresLibrarySuiteChoice' in definition) || !definition.requiresLibrarySuiteChoice || Boolean(options.hasLibrarySuiteChoice))
                         ))
                         .map(([id, definition]) => ({ id, label: t(definition.labelKey) })),
                 })),

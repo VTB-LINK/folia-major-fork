@@ -18,7 +18,7 @@ type AppDialogsProps = {
 
 const AppDialogs: React.FC<AppDialogsProps> = ({ model }) => {
     countRender('AppDialogs');
-    const { statusToast, lyricMatchDialog, naviLyricMatchDialog, onlineLyricMatchDialog, unavailableReplacementDialog, settingsDialog, providerSwitchConfirmDialog } = model;
+    const { statusToast, lyricMatchDialog, naviLyricMatchDialog, onlineLyricMatchDialog, unavailableReplacementDialog, settingsDialog, wallpaperEntryConfirmDialog } = model;
 
     return (
         <>
@@ -51,8 +51,9 @@ const AppDialogs: React.FC<AppDialogsProps> = ({ model }) => {
                                 <button
                                     type="button"
                                     onClick={statusToast.onAction}
-                                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${statusToast.isDaylight ? 'bg-zinc-900 text-white hover:bg-zinc-700' : 'bg-white text-zinc-950 hover:bg-white/85'}`}
+                                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors flex items-center gap-1.5 ${statusToast.isDaylight ? 'bg-zinc-900 text-white hover:bg-zinc-700' : 'bg-white text-zinc-950 hover:bg-white/85'}`}
                                 >
+                                    {statusToast.actionIcon && <statusToast.actionIcon size={14} className={statusToast.isDaylight ? 'text-amber-300' : 'text-amber-500'} />}
                                     {statusToast.actionLabel}
                                 </button>
                             )}
@@ -66,7 +67,7 @@ const AppDialogs: React.FC<AppDialogsProps> = ({ model }) => {
             {naviLyricMatchDialog && <NaviLyricMatchModal {...naviLyricMatchDialog} />}
             {onlineLyricMatchDialog && <OnlineLyricMatchModal {...onlineLyricMatchDialog} />}
             {unavailableReplacementDialog && <UnavailableReplacementDialog {...unavailableReplacementDialog} />}
-            {providerSwitchConfirmDialog && <ConfirmDialog {...providerSwitchConfirmDialog} />}
+            {wallpaperEntryConfirmDialog && <ConfirmDialog {...wallpaperEntryConfirmDialog} />}
             <AnimatePresence>
                 {settingsDialog && <SettingsModal {...settingsDialog} />}
             </AnimatePresence>

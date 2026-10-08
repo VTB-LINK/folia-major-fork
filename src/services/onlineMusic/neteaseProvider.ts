@@ -10,13 +10,18 @@ import type {
     ProviderSongReplacement,
     ProviderArtistSummary,
     ProviderUser,
+    QrLoginState,
 } from '../../types/onlineMusic';
 import { getPersonalFmRequestOptions } from '../../stores/usePersonalFmModeStore';
 import { parseNeteaseChorusRanges, processNeteaseLyrics } from '../../utils/lyrics/neteaseProcessing';
 import { toFiniteNumber } from '../../utils/replayGain';
 import { createProviderSongMetadata } from '../../utils/songMetadata';
-import { isSongMarkedUnavailable, neteaseApi } from '../netease';
-import { writeProviderSessionValue } from './providerStorage';
+import { getNeteaseRemoteApiBase, isSongMarkedUnavailable, neteaseApi } from '../netease';
+import { readProviderSessionValue, writeProviderSessionValue } from './providerStorage';
+import { collectLoginBackendDiagnostics } from './loginBackendDiagnostics';
+import { canRunLoginSelfCheck, runLoginSelfCheck } from './loginSelfCheck';
+import { formatDiagnosticClock } from '../../utils/qrLoginDiagnosticReport';
+import { isConnectionResetMessage, isNetworkFailureMessage } from '../../../shared/networkErrorText.mjs';
 
 // src/services/onlineMusic/neteaseProvider.ts
 
@@ -104,6 +109,34 @@ const normalizeCollection = (raw: any, type = 'playlist'): ProviderCollection =>
         ...(Number.isFinite(tracksUpdatedAt) && tracksUpdatedAt > 0 ? { tracksUpdatedAt } : {}),
         ...(raw?.specialType === 'liked' || raw?.isLiked === true ? { isLiked: true } : {}),
     };
+};
+
+// 扫码接口失败时给日志与诊断时间线的一行：返回码 + 后端原文。
+const describeQrResponse = (response: any): string => (
+    `code ${response?.code ?? 'none'}: ${response?.message || response?.msg || 'no message'}`
+);
+
+/**
+ * 扫码接口没给出预期结果时交给会话的失败：原文与原始返回码；本地 API 把上游的网络错误转成 { code: 502, msg }，
+ * 这类失败没拿到网易的回应、二维码仍然有效（transient，会话会接着轮询），其中连接被重置单独标出原因。
+ */
+const qrFailureOf = (response: any): Extract<QrLoginState, { state: 'error' }> => {
+    const networkFailure = response?.code === 502 && isNetworkFailureMessage(response?.msg);
+    return {
+        state: 'error',
+        message: describeQrResponse(response),
+        ...(response?.code === 502 && isConnectionResetMessage(response?.msg) ? { reason: 'connection-reset' as const } : {}),
+        ...(networkFailure ? { transient: true } : {}),
+        detail: { code: response?.code ?? null, message: response?.message ?? response?.msg ?? null },
+    };
+};
+
+const yesNo = (value: boolean): string => (value ? 'yes' : 'no');
+
+// 最近一次登录态检查的结论。扫码确认后账户没加载出来（account-refresh-failed）时，报告靠它说明是哪个接口拿不到登录态。
+let lastLoginStatusCheck: string | null = null;
+const noteLoginStatusCheck = (summary: string): void => {
+    lastLoginStatusCheck = `${formatDiagnosticClock(Date.now())} ${summary}`;
 };
 
 const extractCloudLyricText = (response: any): string => (
@@ -342,7 +375,10 @@ export const neteaseProvider: OnlineMusicProvider = {
             const loginResponse = await neteaseApi.getLoginStatus();
             const loginProfile = loginResponse?.data?.profile;
             const loginCode = Number(loginResponse?.code ?? loginResponse?.data?.code);
-            if (!loginProfile || [301, 401, 403].includes(loginCode)) return null;
+            if (!loginProfile || [301, 401, 403].includes(loginCode)) {
+                noteLoginStatusCheck(`login/status code=${loginCode} profile=${yesNo(Boolean(loginProfile))}`);
+                return null;
+            }
 
             const accountResponse = await neteaseApi.getUserAccount();
             const accountCode = Number(accountResponse?.code ?? accountResponse?.data?.code);
@@ -350,36 +386,59 @@ export const neteaseProvider: OnlineMusicProvider = {
             const accountId = accountResponse?.account?.id ?? accountProfile?.userId;
             const loginId = loginProfile?.userId ?? loginProfile?.id;
             if (!accountProfile || [301, 401, 403].includes(accountCode) || !accountId || !loginId || String(accountId) !== String(loginId)) {
+                noteLoginStatusCheck(`user/account code=${accountCode} profile=${yesNo(Boolean(accountProfile))} same-user=${yesNo(Boolean(accountId && loginId && String(accountId) === String(loginId)))}`);
                 return null;
             }
 
             if (typeof loginResponse?.cookie === 'string' && loginResponse.cookie) {
                 writeProviderSessionValue('netease', 'cookie', loginResponse.cookie);
             }
+            noteLoginStatusCheck(`signed in (login/status code=${loginCode}, user/account code=${accountCode})`);
             return normalizeUser({ ...loginProfile, ...accountProfile });
         },
         async logout() { await neteaseApi.logout(); },
+        // 扫码三步：要码（unikey）→ 生成二维码图片 → 轮询。没拿到 key 或图片就直接失败：空 key 去轮询只会换来
+        // 一个看不出原因的 code 400，空图片会让界面一直转圈。失败带上原始响应（cause），时间线里看得到网易回了什么。
         async getQrKey() {
             const response = await neteaseApi.getQrKey();
-            return String(response?.data?.unikey || '');
+            const unikey = String(response?.data?.unikey || '');
+            if (unikey) return unikey;
+            const failure = qrFailureOf(response);
+            const error = new OnlineProviderError('invalid-response', `NetEase QR key request failed: ${failure.message}`, 'netease', response);
+            throw Object.assign(error, {
+                ...(failure.reason ? { qrLoginReason: failure.reason } : {}),
+                ...(failure.transient ? { transient: true } : {}),
+            });
         },
         async createQr(key) {
             const response = await neteaseApi.createQr(key);
-            return String(response?.data?.qrimg || '');
+            const image = String(response?.data?.qrimg || '');
+            if (image) return image;
+            throw new OnlineProviderError('invalid-response', `NetEase QR image request failed: ${describeQrResponse(response)}`, 'netease', response);
         },
         async checkQr(key) {
             const response = await neteaseApi.checkQr(key);
-            if (response?.code === 800) return { state: 'expired' };
-            if (response?.code === 802) return { state: 'scanned' };
-            if (response?.code === 803) {
-                if (typeof response?.cookie === 'string' && response.cookie) {
-                    writeProviderSessionValue('netease', 'cookie', response.cookie);
-                }
-                return { state: 'confirmed' };
+            switch (response?.code) {
+                case 800: return { state: 'expired' };
+                case 801: return { state: 'waiting' };
+                case 802: return { state: 'scanned' };
+                case 803:
+                    if (typeof response?.cookie === 'string' && response.cookie) {
+                        writeProviderSessionValue('netease', 'cookie', response.cookie);
+                    }
+                    return { state: 'confirmed' };
+                // 风控（8821 等）、上游网络错误（502）与别的返回码都带着原始 code 与原文交给会话。
+                default: return qrFailureOf(response);
             }
-            if (response?.code === 801) return { state: 'waiting' };
-            return { state: 'error', message: response?.message };
         },
+        async getQrLoginDiagnostics() {
+            return collectLoginBackendDiagnostics('netease', [
+                `session: login cookie=${yesNo(Boolean(readProviderSessionValue('netease', 'cookie', ['netease_cookie'])))}, anonymous cookie=${yesNo(Boolean(readProviderSessionValue('netease', 'anonymous_cookie', ['netease_anonymous_cookie'])))}`,
+                `last account check: ${lastLoginStatusCheck ?? 'none'}`,
+            ], getNeteaseRemoteApiBase());
+        },
+        canRunQrLoginSelfCheck: () => canRunLoginSelfCheck(getNeteaseRemoteApiBase()),
+        runQrLoginSelfCheck: () => runLoginSelfCheck('netease', getNeteaseRemoteApiBase()),
     },
     library: {
         async getUserPlaylists(userId, limit, offset) {
@@ -389,7 +448,17 @@ export const neteaseProvider: OnlineMusicProvider = {
         },
         async getLikedSongIds(userId) {
             const response = await neteaseApi.getLikedSongs(toNeteaseId(userId));
-            return response?.ids || [];
+            // The API layer hands error bodies back instead of throwing. Answering one with [] would
+            // tell the caller the account likes nothing: useNeteaseLibrary would clear every heart and
+            // save that empty list into the account snapshot until the next good refresh.
+            const code = Number(response?.code);
+            if ([301, 401, 403].includes(code)) {
+                throw new OnlineProviderError('auth-required', 'NetEase rejected the liked-songs request: not signed in', 'netease');
+            }
+            if (code !== 200 || !Array.isArray(response?.ids)) {
+                throw new OnlineProviderError('unavailable', `NetEase returned no liked-songs list (code ${response?.code})`, 'netease');
+            }
+            return response.ids;
         },
         async getUserAlbums(_userId, limit, offset) {
             const response = await neteaseApi.getFavoriteAlbums(limit, offset);
