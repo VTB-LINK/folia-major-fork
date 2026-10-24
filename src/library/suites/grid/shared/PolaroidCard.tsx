@@ -3,8 +3,8 @@ import { Pencil } from 'lucide-react';
 import type { SongResult, Theme, UnifiedSong } from '../../../../types';
 import { getSongUnavailableLabel, isSongUnavailable } from '../../../../services/onlineMusic/songAvailability';
 import { canResolveSongCatalogRef } from '../../../../services/onlineMusic/catalogRefs';
-import { resolveTrackAlbumTargetId } from '../../../core/model/trackLinks';
-import { CARD_TITLE_ATTR } from '../transitions/gridMorphContract';
+import { resolveTrackAlbumTargetId } from '../../../core/shared/trackLinks';
+import { CARD_TITLE_ATTR, MORPH_FRAME_ATTR } from '../transitions/gridMorphContract';
 import {
     formatCardDuration,
     PolaroidCardActions,
@@ -15,6 +15,7 @@ import {
     type GridItem,
     type PolaroidCardMode,
 } from './polaroidCardParts';
+import type { GridPlaybackMark } from './useGridStayPlayback';
 
 // src/library/suites/grid/shared/PolaroidCard.tsx
 // The card the folia hex grids render. Two layouts share one component: the polaroid frame (square
@@ -22,6 +23,12 @@ import {
 // copy sits on a gradient scrim. Moved out of GridView.tsx when the second layout arrived.
 
 export type { GridItem } from './polaroidCardParts';
+
+/** The gradient a full-bleed card paints over its artwork, under its copy. */
+export const fullBleedScrim = (isDaylight: boolean): string => {
+    const shadeRgb = isDaylight ? '255 255 255' : '0 0 0';
+    return `linear-gradient(180deg, rgb(${shadeRgb} / 0%) 26%, rgb(${shadeRgb} / 30%) 50%, rgb(${shadeRgb} / 74%) 74%, rgb(${shadeRgb} / 93%) 100%)`;
+};
 
 export interface PolaroidCardProps {
     item: GridItem;
@@ -44,6 +51,8 @@ export interface PolaroidCardProps {
     isFocused?: boolean;
     /** Artwork fills the whole card and the copy moves onto a scrim over it. */
     fullBleedCover?: boolean;
+    /** fb3: under "stay here", the playing song's card shows pause / resume instead of play. */
+    playbackMark?: GridPlaybackMark | null;
 }
 
 /**
@@ -73,6 +82,7 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
         openWhenFocusedOnCardClick = false,
         isFocused = false,
         fullBleedCover = false,
+        playbackMark = null,
     }) => {
         const isUnavailable = mode === 'tracks' && item.rawTrack ? isSongUnavailable(item.rawTrack) : false;
         const unavailableTagText = (mode === 'tracks' && item.rawTrack)
@@ -164,11 +174,11 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
             // Readability follows the poster wall: one static gradient painted over the artwork, and
             // deliberately no backdrop-filter. A blurred plate per card would promote every card to
             // its own compositing layer, which is the single largest GPU cost the wall ever measured.
-            const shadeRgb = isDaylight ? '255 255 255' : '0 0 0';
-            const scrim = `linear-gradient(180deg, rgb(${shadeRgb} / 0%) 26%, rgb(${shadeRgb} / 30%) 50%, rgb(${shadeRgb} / 74%) 74%, rgb(${shadeRgb} / 93%) 100%)`;
+            const scrim = fullBleedScrim(isDaylight);
 
             return (
                 <div
+                    {...{ [MORPH_FRAME_ATTR]: '' }}
                     className="relative rounded-xl overflow-hidden border shadow-lg hover:shadow-2xl transition-shadow duration-300 theme-polaroid-card"
                     style={{ width: dynamicWidth, height: dynamicHeight }}
                     onClick={handleCardClick}
@@ -191,7 +201,7 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
                     <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col gap-1 p-3 text-left">
                         <div className="group/song-title relative max-w-full">
                             <div
-                                {...{ [CARD_TITLE_ATTR]: item.name }}
+                                {...{ [CARD_TITLE_ATTR]: '' }}
                                 className="text-sm font-bold tracking-tight leading-snug line-clamp-3 whitespace-normal break-words"
                             >
                                 {item.name}
@@ -234,6 +244,7 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
                                 isUnavailable={isUnavailable}
                                 onSelect={onSelect}
                                 onAddQueue={onAddQueue}
+                                playbackMark={playbackMark}
                                 t={t}
                             />
                         </div>
@@ -244,6 +255,7 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
 
         return (
             <div
+                {...{ [MORPH_FRAME_ATTR]: '' }}
                 className="rounded-xl p-3 flex flex-col items-center border transition-shadow duration-300 shadow-lg hover:shadow-2xl theme-polaroid-card"
                 style={{
                     width: dynamicWidth,
@@ -274,7 +286,7 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
                         {/* Title */}
                         <div className="group/song-title relative max-w-full">
                             <div
-                                {...{ [CARD_TITLE_ATTR]: item.name }}
+                                {...{ [CARD_TITLE_ATTR]: '' }}
                                 className="text-s font-bold tracking-tight opacity-90 max-w-full line-clamp-4 whitespace-normal break-words"
                             >
                                 {item.name}
@@ -321,6 +333,7 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
                             isUnavailable={isUnavailable}
                             onSelect={onSelect}
                             onAddQueue={onAddQueue}
+                            playbackMark={playbackMark}
                             t={t}
                         />
                     </div>
@@ -344,6 +357,7 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
             prev.fullBleedCover === next.fullBleedCover &&
             prev.openWhenFocusedOnCardClick === next.openWhenFocusedOnCardClick &&
             Boolean(prev.onEditLocalMetadata) === Boolean(next.onEditLocalMetadata) &&
+            prev.playbackMark === next.playbackMark &&
             prev.isFocused === next.isFocused
         );
     }

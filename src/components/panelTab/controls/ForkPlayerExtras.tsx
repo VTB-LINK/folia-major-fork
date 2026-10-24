@@ -1,15 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Theme } from '../../../types';
 import { usePlayerChromeSettingsStore } from '../../../stores/usePlayerChromeSettingsStore';
 import { useTypographySettingsStore } from '../../../stores/useTypographySettingsStore';
 import { useStageSettingsStore } from '../../../stores/useStageSettingsStore';
-import { setStatusMessage } from '../../../stores/useStatusMessageStore';
-import { ObsCopyUrlButton } from '../../shared/ObsCopyUrlButton';
-import { ObsCopyCssButton } from '../../shared/ObsCopyCssButton';
-import { buildCurrentObsUrl } from '../../../services/obs/currentObsUrl';
-import { resolveWebObsTarget, selectWebObsSource } from '../../../services/obs/webObsTarget';
-import { resolveObsCopyHintKey } from '../../../services/obs/visualSettingsConfig';
+import { selectWebObsSource } from '../../../services/obs/webObsTarget';
+import ObsLinkRows from '../../modal/settings/pages/ObsLinkRows';
 
 // src/components/panelTab/controls/ForkPlayerExtras.tsx
 // FORK-ONLY. The player-panel additions upstream does not carry: five quick toggles that are
@@ -69,24 +65,6 @@ const ForkPlayerExtras: React.FC<ForkPlayerExtrasProps> = ({ theme, isDaylight }
     // OBS static URL is a web-deploy concept, so these copy buttons are web-only.
     const isElectron = typeof window !== 'undefined' && Boolean((window as { electron?: unknown }).electron);
     const webObsSource = useStageSettingsStore(selectWebObsSource);
-    const [obsUrlCopied, setObsUrlCopied] = useState(false);
-    const handleCopyObsUrl = async () => {
-        const target = resolveWebObsTarget();
-        if (!target) return;
-        const url = await buildCurrentObsUrl(target.source, target.host, target.extra);
-        try {
-            await navigator.clipboard.writeText(url);
-            setObsUrlCopied(true);
-            window.setTimeout(() => setObsUrlCopied(false), 1600);
-            const hint = resolveObsCopyHintKey();
-            setStatusMessage({ type: hint.type, text: t(hint.key) });
-        } catch (err) {
-            // The URL is built asynchronously, so a browser that requires the write to stay inside the
-            // click's own task can reject here. Say so instead of leaving the button inert.
-            console.error('Failed to copy OBS URL:', err);
-            setStatusMessage({ type: 'error', text: t('status.copyFailed') });
-        }
-    };
 
     return (
         <>
@@ -133,20 +111,11 @@ const ForkPlayerExtras: React.FC<ForkPlayerExtrasProps> = ({ theme, isDaylight }
                 />
             </div>
 
-            {!isElectron && (
-                <div className="pt-2 border-t border-white/5 space-y-2">
-                    <ObsCopyUrlButton
-                        onCopy={handleCopyObsUrl}
-                        copied={obsUrlCopied}
-                        disabled={webObsSource === null}
-                        containerClassName="flex w-full"
-                        buttonClassName="flex-1 py-2"
-                    />
-                    <ObsCopyCssButton
-                        disabled={webObsSource === null}
-                        containerClassName="flex w-full"
-                        buttonClassName="flex-1 py-2"
-                    />
+            {/* 与设置里同一组 OBS 链接行（主题模式、复制链接、有上传图片时复制 CSS）；链接是给舞台源的，
+                没有开着的 web 舞台源时不显示。 */}
+            {!isElectron && webObsSource !== null && (
+                <div className="pt-2 border-t border-white/5">
+                    <ObsLinkRows />
                 </div>
             )}
         </>

@@ -13,9 +13,11 @@ import { useSettingsModalStore } from '../../stores/useSettingsModalStore';
 import { useAppViewStore } from '../../stores/useAppViewStore';
 import { useInteractionSettingsStore } from '../../stores/useInteractionSettingsStore';
 import { resolveCustomShortcutCommand } from './customShortcut';
+import { useGlobalShortcuts } from './globalShortcuts/useGlobalShortcuts';
+import { runGlobalShortcutCommand } from './globalShortcuts/runGlobalShortcutCommand';
 
 // src/components/command-palette/useCommandPalette.ts
-import { effectiveKeyCode, isTextEntryTarget } from '../../utils/keyboardTargets';
+import { effectiveKeyCode, hasOpenSheet, isCommandPaletteShortcut, isTextEntryTarget } from '../../utils/keyboardTargets';
 
 // Manages palette state, keyboard opening, and selected autocomplete item.
 
@@ -266,6 +268,15 @@ export const useCommandPalette = ({
         void command.execute('', liveContext);
     }, [openCommand, recordRecentCommand]);
 
+    // The desktop app's system-wide playback shortcuts. Asked against the live context like a pinned
+    // command, but not recorded: volume and next track pressed dozens of times a day would push
+    // everything else out of the palette's recent list and its ranking.
+    // Mod commands bound there run through their palette entry like the host's (runGlobalShortcutCommand).
+    const runGlobalShortcut = useCallback((commandId: string) => {
+        runGlobalShortcutCommand(commandId, contextRef.current);
+    }, []);
+    useGlobalShortcuts(runGlobalShortcut);
+
     const executeMatch = useCallback(async (index: number) => {
         if (isExecuting) {
             return false;
@@ -382,6 +393,12 @@ export const useCommandPalette = ({
             return;
         }
         if (paletteRequest.kind === 'filter') {
+            // A surface with its own input (the bravais seam) puts that up instead of the palette's inline box.
+            const ownInput = context.scope.filter?.ownInput;
+            if (ownInput) {
+                ownInput.open();
+                return;
+            }
             if (filterCommand) {
                 openCommand(filterCommand);
             }
@@ -478,6 +495,12 @@ export const useCommandPalette = ({
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
+            // A dialog is drawn over the palette and has the keyboard: under it no key opens the
+            // palette or runs a command.
+            if (hasOpenSheet()) {
+                return;
+            }
+
             // Ordered by who has the stronger claim on the keystroke, not by how the palette is
             // built. A modifier shortcut can never be mistaken for input, so it goes first; a
             // surface that reads bare characters outranks every modifier-free palette key, or the
@@ -505,7 +528,7 @@ export const useCommandPalette = ({
 
             // Works everywhere, because it carries a modifier.
             // Software-injected shortcuts may provide the key without a physical key code.
-            if ((effectiveKeyCode(event) === 'KeyK' || event.key.toLowerCase() === 'k') && isPrimaryModifierPressed(event) && !event.altKey && !event.shiftKey && !isSecondaryModifierPressed(event)) {
+            if (isCommandPaletteShortcut(event)) {
                 if (isBlocked) {
                     return;
                 }
@@ -519,9 +542,16 @@ export const useCommandPalette = ({
             // grids' type-to-filter, except that the palette now holds the input — which is what
             // lets one command, one box and one keyword list serve all three of them.
             if (filterCommand && !isOpen && !event.ctrlKey && !event.altKey && !event.metaKey && !isTextEntryTarget(event.target)) {
+                // A surface that draws its own input (the bravais seam) takes the typing itself; the palette only
+                // keeps the keys it owns outright (`:` and the opt-in `s`, below).
+                const ownInput = context.scope.filter?.ownInput;
                 // An IME announces itself with 'Process' before it has any text; open and let the
                 // composition land in the box.
                 if (event.key === 'Process' || event.key === 'Unidentified') {
+                    if (ownInput) {
+                        ownInput.takeKey(event);
+                        return;
+                    }
                     openCommand(filterCommand);
                     return;
                 }
@@ -535,6 +565,17 @@ export const useCommandPalette = ({
                     if (bareHotkeyCommand && isCommandPaletteCommandEnabled(bareHotkeyCommand, context)) {
                         event.preventDefault();
                         invokeCommand(bareHotkeyCommand);
+                        return;
+                    }
+                    if (ownInput) {
+                        if (paletteHotkeyOnFilteringSurface && effectiveKeyCode(event) === 'KeyS' && !event.shiftKey) {
+                            event.preventDefault();
+                            open();
+                            return;
+                        }
+                        // The surface decides whether the keystroke lands in its input or is dropped; a key it
+                        // refuses (Space, a reserved key) is left for whoever else listens.
+                        ownInput.takeKey(event);
                         return;
                     }
                     // The opening keystroke is deliberately dropped rather than seeded into the

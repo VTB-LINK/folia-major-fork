@@ -3,7 +3,7 @@ import { handleGenerateTheme } from '../../worker/generate-theme';
 import { handleGenerateOpenAITheme } from '../../worker/generate-theme_openai';
 
 // SWA 托管函数：AI 主题「无密钥中继」。
-// 部署方不设任何服务端密钥；每个 web 用户在设置里填自己的 key，前端（src/services/gemini.ts）
+// 部署方不设任何服务端密钥；每个 web 用户在设置里填自己的 key，前端（src/services/aiText.ts）
 // 把 apiKey / provider 塞进请求 body。这里从 body 取出 key 构造 env，喂给现有 worker 处理器
 // （它们只用 request.method + request.json() + env.*_API_KEY），再把返回的 Web Response 转成
 // Azure 的 HttpResponseInit。逻辑（prompt/sanitize）完全复用 worker/，由 esbuild 打包进 dist。

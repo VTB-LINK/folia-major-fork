@@ -6,7 +6,7 @@ import { useAutomixSettingsStore } from '../../../stores/useAutomixSettingsStore
 import { useDesktopSettingsStore } from '../../../stores/useDesktopSettingsStore';
 import { useLocalLibrarySettingsStore } from '../../../stores/useLocalLibrarySettingsStore';
 import { isLocalLibraryAutoScanSupported } from '../../../services/localLibraryAutoScan';
-import { isNeteaseScrobbleReady } from '../../../services/onlineMusic/playbackReportGate';
+import { isPlaybackReportReady } from '../../../services/onlineMusic/playbackReportGate';
 import { useLyricSettingsStore } from '../../../stores/useLyricSettingsStore';
 import { useGridViewSettingsStore } from '../../../stores/useGridViewSettingsStore';
 import { useLatticeSettingsStore } from '../../../stores/useLatticeSettingsStore';
@@ -14,6 +14,8 @@ import { useMotionSettingsStore } from '../../../stores/useMotionSettingsStore';
 import { usePlaybackEntryViewStore } from '../../../stores/usePlaybackEntryViewStore';
 import { hasLibrarySuiteChoice } from '../../../library/registry';
 import { chooseLibrarySuite, getActiveLibrarySuiteId, listLibrarySuiteOptions } from '../../../library/app/librarySuiteChoice';
+import { isBravaisLibraryActive } from '../../../library/app/bravaisLibraryActive';
+import { useLibraryWallLookStore } from '../../../stores/useLibraryWallLookStore';
 import { usePonderStore } from '../../../stores/usePonderStore';
 import { useHomeLayoutSettingsStore } from '../../../stores/useHomeLayoutSettingsStore';
 import { usePlayerChromeSettingsStore } from '../../../stores/usePlayerChromeSettingsStore';
@@ -88,6 +90,33 @@ export const buildSettingsCommandContext = (
         activeLibrarySuite: getActiveLibrarySuiteId,
         canChooseLibrarySuite: hasLibrarySuiteChoice,
         chooseLibrarySuite,
+        // bravais 的透光偏好：与设置分区同一个谓词；值与 setter 都现读 store（面板开着时也会变）。
+        isLibraryWallLookAvailable: isBravaisLibraryActive,
+        libraryWallLook: () => useLibraryWallLookStore.getState().look,
+        setLibraryWallLook: look => useLibraryWallLookStore.getState().setLook(look),
+        libraryWallWindowsPerBlock: () => useLibraryWallLookStore.getState().windowsPerBlock,
+        setLibraryWallWindowsPerBlock: windowsPerBlock => useLibraryWallLookStore.getState().setWindowsPerBlock(windowsPerBlock),
+        toggleLibraryWallStackEdges: () => {
+            const wall = useLibraryWallLookStore.getState();
+            wall.setCollectionStackEdges(!wall.collectionStackEdges);
+        },
+        libraryWallSeamClear: () => useLibraryWallLookStore.getState().seamClear,
+        toggleLibraryWallSeamClear: () => {
+            const wall = useLibraryWallLookStore.getState();
+            wall.setSeamClear(!wall.seamClear);
+        },
+        libraryWallSeamStyle: () => useLibraryWallLookStore.getState().seamStyle,
+        setLibraryWallSeamStyle: style => useLibraryWallLookStore.getState().setSeamStyle(style),
+        toggleLibraryWallBackdropLyrics: () => {
+            const wall = useLibraryWallLookStore.getState();
+            wall.setBackdropLyrics(!wall.backdropLyrics);
+        },
+        toggleLibraryWallBackdropBlur: () => {
+            const wall = useLibraryWallLookStore.getState();
+            wall.setBackdropBlur(!wall.backdropBlur);
+        },
+        libraryWallSeamDirection: () => useLibraryWallLookStore.getState().seamDirection,
+        setLibraryWallSeamDirection: direction => useLibraryWallLookStore.getState().setSeamDirection(direction),
         ponderHintVisibility: ponder.ponderHintVisibility,
         setPonderHintVisibility: ponder.setPonderHintVisibility,
         togglePonderTouchButton: () => {
@@ -147,6 +176,9 @@ export const buildSettingsCommandContext = (
         toggleAutoHideCursorWithPlayerChrome: () => chrome.handleToggleAutoHideCursorWithPlayerChrome(
             !usePlayerChromeSettingsStore.getState().autoHideCursorWithPlayerChrome,
         ),
+        toggleHideCursorWhenIdle: () => chrome.handleToggleHideCursorWhenIdle(
+            !usePlayerChromeSettingsStore.getState().hideCursorWhenIdle,
+        ),
         toggleAutoPlayOnLaunch: () => audio.handleToggleAutoPlayOnLaunch(
             !useAudioSettingsStore.getState().autoPlayOnLaunch,
         ),
@@ -156,10 +188,13 @@ export const buildSettingsCommandContext = (
         togglePlaybackFade: () => audio.handleTogglePlaybackFade(
             !useAudioSettingsStore.getState().playbackFadeEnabled,
         ),
+        toggleAutoSkipUnplayable: () => audio.handleToggleAutoSkipUnplayable(
+            !useAudioSettingsStore.getState().autoSkipUnplayable,
+        ),
         canAutoScanLocalLibrary: isLocalLibraryAutoScanSupported,
         toggleLocalLibraryAutoScan: () => useLocalLibrarySettingsStore.getState().toggleAutoScan(),
-        canReportNeteasePlayback: isNeteaseScrobbleReady,
-        toggleNeteaseScrobble: () => audio.handleToggleNeteaseScrobble(
+        canReportPlayback: () => isPlaybackReportReady(),
+        togglePlaybackReport: () => audio.handleToggleNeteaseScrobble(
             !useAudioSettingsStore.getState().neteaseScrobbleEnabled,
         ),
         voiceInputPauseSupported: deps.voiceInputPauseSupported,
@@ -170,6 +205,9 @@ export const buildSettingsCommandContext = (
         togglePreventDisplaySleepDuringPlayback: () => desktop.handleTogglePreventDisplaySleepDuringPlayback(
             !useDesktopSettingsStore.getState().preventDisplaySleepDuringPlayback,
         ),
+        toggleBackgroundThrottling: () => desktop.handleToggleBackgroundThrottling(
+            !useDesktopSettingsStore.getState().backgroundThrottling,
+        ),
         toggleWallpaperMode: () => desktop.handleToggleWallpaperMode(
             !useDesktopSettingsStore.getState().wallpaperMode,
         ),
@@ -179,6 +217,9 @@ export const buildSettingsCommandContext = (
         toggleHideRemoteControlTitlebar: () => desktop.handleToggleHideRemoteControlTitlebar(
             !useDesktopSettingsStore.getState().hideRemoteControlTitlebar,
         ),
+        toggleRemoteControlExpandCover: () => desktop.handleToggleRemoteControlExpandCover(
+            !useDesktopSettingsStore.getState().remoteControlExpandCover,
+        ),
         unlockRemoteControl: () => desktop.handleToggleRemoteControlClickThrough(false),
         toggleObsKeepMainWindowAnimation: () => useStageSettingsStore.getState().handleToggleObsKeepMainWindowAnimation(
             !useStageSettingsStore.getState().obsKeepMainWindowAnimation,
@@ -186,6 +227,8 @@ export const buildSettingsCommandContext = (
         toggleWallpaperMacAutohideDock: () => desktop.handleToggleWallpaperMacAutohideDock(
             !useDesktopSettingsStore.getState().wallpaperMacAutohideDock,
         ),
+        gpuPreference: () => useDesktopSettingsStore.getState().gpuPreference,
+        setGpuPreference: desktop.handleSetGpuPreference,
         sleepTimerEnabled: sleepTimer.sleepTimerEnabled,
         setSleepTimerEnabled: sleepTimer.handleToggleSleepTimer,
         sleepTimerHours: sleepTimer.sleepTimerHours,

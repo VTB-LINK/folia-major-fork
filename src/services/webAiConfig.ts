@@ -1,6 +1,6 @@
 // src/services/webAiConfig.ts
 // Web 端 AI 主题配置（localStorage）。Electron 在"桌面设置"里配 key（走 electron store）；web 无桌面设置，
-// 故独立存这里，供 AppearanceSettingsSubview 的 web AI 段与 src/services/gemini.ts 共用。
+// 故独立存这里，供设置外观页的 web AI 段（settings/pages/ForkWebAiSettings.tsx）与 src/services/aiText.ts 共用。
 // 用户自带 key，请求经 SWA 无密钥中继（swa-api/）。不含"系统代理"项：浏览器（尤其 OBS 内）无法走系统代理。
 
 export type WebAiProvider = 'gemini' | 'openai';

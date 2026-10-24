@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LocalSong, SongResult } from '@/types';
 import type { LocalLibraryAssignment, LocalLibraryEntity } from '@/types/localLibrary';
-import type { LibraryArtistLocalLibrary } from '@/library/core/contracts/artist';
+import type { LibraryArtistLocalLibrary } from '@/library/core/artist/artist.contract';
 import {
     appendArtistAlbums,
     artistAlbumCoverUrl,
@@ -13,14 +13,14 @@ import {
     mapOnlineArtistDetail,
     toHttpsCoverUrl,
     UNKNOWN_LOCAL_ALBUM_KEY,
-} from '@/library/core/model/artistModel';
+} from '@/library/core/artist/artistModel';
 import {
     resolveLocalCatalogEntity,
     resolveLocalCatalogLink,
     resolveLocalEntitySongIds,
     resolveLocalSongEntityId,
     buildLocalCatalogIndex,
-} from '@/library/core/model/localCatalogLinks';
+} from '@/library/core/shared/localCatalogLinks';
 
 // test/unit/library/core/artistModel.test.ts
 // 歌手页的纯变换（原 ArtistGridView 的加载分支与 useMemo）以及三处共用的本地专辑 / 歌手解析
@@ -103,9 +103,9 @@ describe('deriveLocalArtist', () => {
         });
         // al1 的第一首（s1）没封面，组里第二首（s2）补上；没归属的歌进「未知专辑」。
         expect(derived.albums).toEqual([
-            { id: 'al1', name: 'Alpha', coverUrl: 'cover-s2', publishedAt: undefined },
-            { id: 'al2', name: 'Beta', coverUrl: 'cover-s3', publishedAt: undefined },
-            { id: UNKNOWN_LOCAL_ALBUM_KEY, name: 'localMusic.unknownAlbum', coverUrl: 'cover-s5', publishedAt: undefined },
+            { id: 'al1', name: 'Alpha', coverUrl: 'cover-s2', publishedAt: undefined, trackCount: 2 },
+            { id: 'al2', name: 'Beta', coverUrl: 'cover-s3', publishedAt: undefined, trackCount: 1 },
+            { id: UNKNOWN_LOCAL_ALBUM_KEY, name: 'localMusic.unknownAlbum', coverUrl: 'cover-s5', publishedAt: undefined, trackCount: 1 },
         ]);
         // s1 自己没封面：用所在专辑的封面。
         expect(derived.topSongs.map(track => [track.id, track.album?.coverUrl])).toEqual([
@@ -147,7 +147,7 @@ describe('online and Navidrome mapping', () => {
             fallbackName: 'Fallback', coverArtUrl: id => `url:${id}`, t,
         });
         expect(mapped.detail).toEqual({ name: 'Fallback', coverUrl: 'url:art0', description: 'navidrome.artists', trackCount: 0, albumCount: 6 });
-        expect(mapped.albums[0]).toEqual({ id: 'al0', name: 'Album 0', coverUrl: 'url:art0', publishedAt: new Date(2001, 0, 1).getTime() });
+        expect(mapped.albums[0]).toEqual({ id: 'al0', name: 'Album 0', coverUrl: 'url:art0', publishedAt: new Date(2001, 0, 1).getTime(), trackCount: 1 });
         expect(mapped.albums[1].coverUrl).toBeUndefined();
         expect(mapped.topSongAlbumIds).toEqual(['al0', 'al1', 'al2', 'al3', 'al4']);
     });

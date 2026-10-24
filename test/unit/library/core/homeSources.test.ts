@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { TFunction } from 'i18next';
 import type { OmniProviderCapabilities, ProviderAccountSummary, ProviderCollection } from '@/types/onlineMusic';
 import {
+    cycleIndex,
     homeScanPercent,
     isHomeImportBusy,
     isOnlineHomeTab,
@@ -13,7 +14,7 @@ import {
     resolveOnlineTabUnavailableReason,
     translateHomeMessage,
     translateHomeTabs,
-} from '@/library/core/model/homeSources';
+} from '@/library/core/home/homeSources';
 
 // test/unit/library/core/homeSources.test.ts
 // 首页来源与页签（原 Grid3D 的派生与写在 JSX 里的页签列表）：账户 / 歌单的回退、能力 → 页签可用性与原因、
@@ -101,7 +102,7 @@ describe('home tabs', () => {
 
     it('lists playlist, radio, albums, local and navidrome in that order', () => {
         const tabs = resolveHomeTabs({
-            visibility: { playlist: true, radio: true, albums: true, local: true },
+            visibility: { playlist: true, radio: true, explore: false, albums: true, local: true },
             navidromeEnabled: true,
             online,
             localAvailability: supported,
@@ -113,7 +114,7 @@ describe('home tabs', () => {
 
     it('hides the tabs the layout settings turn off and Navidrome when it is disabled', () => {
         const tabs = resolveHomeTabs({
-            visibility: { playlist: true, radio: false, albums: true, local: false },
+            visibility: { playlist: true, radio: false, explore: false, albums: true, local: false },
             navidromeEnabled: false,
             online,
             localAvailability: supported,
@@ -121,9 +122,23 @@ describe('home tabs', () => {
         expect(tabs.map(tab => tab.key)).toEqual(['playlist', 'albums']);
     });
 
+    it('shows explore after radio only when the provider has a page of its own and the setting is on', () => {
+        const visibility = { playlist: true, radio: true, explore: true, albums: true, local: false };
+        const withPage = source({ capabilities: { ...ALL, explore: true } });
+        const keysOf = (online: ReturnType<typeof source>, shown = visibility) => resolveHomeTabs({
+            visibility: shown,
+            navidromeEnabled: false,
+            online,
+            localAvailability: supported,
+        }).map(tab => tab.key);
+        expect(keysOf(withPage)).toEqual(['playlist', 'radio', 'explore', 'albums']);
+        expect(keysOf(source())).toEqual(['playlist', 'radio', 'albums']);
+        expect(keysOf(withPage, { ...visibility, explore: false })).toEqual(['playlist', 'radio', 'albums']);
+    });
+
     it('gives each unavailable tab its reason, naming the provider', () => {
         const tabs = translateHomeTabs(resolveHomeTabs({
-            visibility: { playlist: true, radio: true, albums: true, local: true },
+            visibility: { playlist: true, radio: true, explore: false, albums: true, local: true },
             navidromeEnabled: false,
             online: source({ capabilities: NONE }),
             localAvailability: { supported: false, reason: 'insecure-http' },
@@ -147,10 +162,11 @@ describe('home tabs', () => {
     });
 
     it('knows the online tabs and their titles', () => {
-        expect(['playlist', 'radio', 'albums', 'local', 'navidrome'].map(tab => isOnlineHomeTab(tab as never))).toEqual([true, true, true, false, false]);
+        expect(['playlist', 'radio', 'albums', 'explore', 'local', 'navidrome'].map(tab => isOnlineHomeTab(tab as never))).toEqual([true, true, true, true, false, false]);
         expect(onlineHomeTitleKey('playlist')).toBe('home.playlists');
         expect(onlineHomeTitleKey('albums')).toBe('home.albums');
         expect(onlineHomeTitleKey('radio')).toBe('home.radio');
+        expect(onlineHomeTitleKey('explore')).toBe('home.explore');
         expect(resolveOnlineTabUnavailableReason(online, 'radio')).toBeUndefined();
     });
 });
@@ -188,5 +204,33 @@ describe('online loading and import state', () => {
         expect(homeScanPercent({ active: true, folderName: 'A', totalSongs: 0, completedSongs: 0 })).toBe(0);
         expect(homeScanPercent({ active: true, folderName: 'A', totalSongs: 3, completedSongs: 1 })).toBe(33);
         expect(homeScanPercent({ active: true, folderName: 'A', totalSongs: 3, completedSongs: 5 })).toBe(100);
+    });
+});
+
+describe('cycleIndex（首页 Tab / F6 循环）', () => {
+    const tabs = [
+        { key: 'playlist', disabled: false },
+        { key: 'radio', disabled: true },
+        { key: 'albums', disabled: false },
+        { key: 'local', disabled: false },
+    ];
+    const enabled = (tab: { disabled: boolean }) => !tab.disabled;
+
+    it('跳过不可用项，首尾绕回', () => {
+        expect(cycleIndex(tabs, 0, 1, enabled)).toBe(2);
+        expect(cycleIndex(tabs, 2, -1, enabled)).toBe(0);
+        expect(cycleIndex(tabs, 3, 1, enabled)).toBe(0);
+        expect(cycleIndex(tabs, 0, -1, enabled)).toBe(3);
+    });
+
+    it('当前项不在列表里时，往后落到第一个可用项，往前落到最后一个', () => {
+        expect(cycleIndex(tabs, -1, 1, enabled)).toBe(0);
+        expect(cycleIndex(tabs, -1, -1, enabled)).toBe(3);
+    });
+
+    it('只剩当前项可用时停在原地；全都不可用或列表为空时返回 -1', () => {
+        expect(cycleIndex(tabs, 0, 1, tab => tab.key === 'playlist')).toBe(0);
+        expect(cycleIndex(tabs, 0, 1, () => false)).toBe(-1);
+        expect(cycleIndex([], -1, 1, () => true)).toBe(-1);
     });
 });
