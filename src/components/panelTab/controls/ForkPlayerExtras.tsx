@@ -8,8 +8,9 @@ import { selectWebObsSource } from '../../../services/obs/webObsTarget';
 import ObsLinkRows from '../../modal/settings/pages/ObsLinkRows';
 
 // src/components/panelTab/controls/ForkPlayerExtras.tsx
-// FORK-ONLY. The player-panel additions upstream does not carry: five quick toggles that are
-// re-touched per stream segment (also in Lab / Appearance settings, same store fields) and the
+// FORK-ONLY. The player-panel additions upstream does not carry: four quick toggles that are
+// re-touched per stream segment (also in Lab / Appearance settings, same store fields; the fifth,
+// the transparent player background, now sits in upstream's own AppearanceSection) and the
 // web-only OBS copy buttons (URL + Custom CSS for uploaded assets). Kept in its own component so an
 // upstream ControlsTab refactor only needs the single <ForkPlayerExtras/> line re-added, not the
 // whole block re-ported. Upstream declined these in the panel on review (#189).
@@ -50,8 +51,6 @@ interface ForkPlayerExtrasProps {
 
 const ForkPlayerExtras: React.FC<ForkPlayerExtrasProps> = ({ theme, isDaylight }) => {
     const { t } = useTranslation();
-    const transparentPlayerBackground = usePlayerChromeSettingsStore(state => state.transparentPlayerBackground);
-    const toggleTransparentPlayerBackground = usePlayerChromeSettingsStore(state => state.handleToggleTransparentPlayerBackground);
     const autoHidePlayerChrome = usePlayerChromeSettingsStore(state => state.autoHidePlayerChrome);
     const toggleAutoHidePlayerChrome = usePlayerChromeSettingsStore(state => state.handleToggleAutoHidePlayerChrome);
     const hidePlayerProgressBar = usePlayerChromeSettingsStore(state => state.hidePlayerProgressBar);
@@ -69,14 +68,6 @@ const ForkPlayerExtras: React.FC<ForkPlayerExtrasProps> = ({ theme, isDaylight }
     return (
         <>
             <div className="pt-2 border-t border-white/5 space-y-2">
-                <QuickToggleRow
-                    label={t('options.transparentPlayerBackground')}
-                    hint={t('options.transparentPlayerBackgroundDesc')}
-                    on={transparentPlayerBackground}
-                    accent={theme.secondaryColor}
-                    offClass={toggleOffClass}
-                    onToggle={() => toggleTransparentPlayerBackground(!transparentPlayerBackground)}
-                />
                 <QuickToggleRow
                     label={t('options.autoHidePlayerChrome')}
                     hint={t('options.autoHidePlayerChromeDesc')}
