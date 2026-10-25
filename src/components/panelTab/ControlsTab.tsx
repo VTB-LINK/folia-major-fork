@@ -125,7 +125,7 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
 
         {/* FORK-ONLY. Player-panel toggles + OBS copy buttons, kept in their own component so an
             upstream ControlsTab refactor only needs this single line re-added, not the whole block. */}
-        <ForkPlayerExtras theme={theme} isDaylight={isDaylight} />
+        <ForkPlayerExtras />
 
         <AudioEqualizerDialog isDaylight={isDaylight} />
     </div>

@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Theme } from '../../../types';
 import { usePlayerChromeSettingsStore } from '../../../stores/usePlayerChromeSettingsStore';
 import { useTypographySettingsStore } from '../../../stores/useTypographySettingsStore';
 import { useStageSettingsStore } from '../../../stores/useStageSettingsStore';
 import { selectWebObsSource } from '../../../services/obs/webObsTarget';
+import { Toggle } from '../../modal/settings/kit';
 import ObsLinkRows from '../../modal/settings/pages/ObsLinkRows';
 
 // src/components/panelTab/controls/ForkPlayerExtras.tsx
@@ -15,41 +15,24 @@ import ObsLinkRows from '../../modal/settings/pages/ObsLinkRows';
 // upstream ControlsTab refactor only needs the single <ForkPlayerExtras/> line re-added, not the
 // whole block re-ported. Upstream declined these in the panel on review (#189).
 
-// Compact label + switch row, borrowing the settings modal's switch sized to this panel. Module
-// scope so toggling one row does not remount the others.
+// The same row upstream draws for the transparent-player-background switch in AppearanceSection, so
+// the panel reads as one set. Module scope so toggling one row does not remount the others.
 const QuickToggleRow: React.FC<{
     label: string;
     hint: string;
     on: boolean;
-    accent?: string;
-    offClass: string;
-    onToggle: () => void;
-}> = ({ label, hint, on, accent, offClass, onToggle }) => (
-    <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest truncate" title={hint}>
-            {label}
-        </span>
-        <button
-            type="button"
-            onClick={onToggle}
-            role="switch"
-            aria-checked={on}
-            aria-label={label}
-            title={hint}
-            className={`w-9 h-5 shrink-0 rounded-full p-0.5 transition-colors ${on ? '' : offClass}`}
-            style={{ backgroundColor: on ? (accent || 'rgba(114, 119, 134, 1)') : undefined }}
-        >
-            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${on ? 'translate-x-4' : 'translate-x-0'}`} />
-        </button>
-    </div>
-);
+    onChange: (enable: boolean) => void;
+}> = ({ label, hint, on, onChange }) => {
+    const labelId = useId();
+    return (
+        <div className="flex min-h-11 items-center gap-3 py-1.5" title={hint}>
+            <span id={labelId} className="min-w-0 flex-1 text-sm leading-5">{label}</span>
+            <Toggle checked={on} onChange={onChange} labelledBy={labelId} />
+        </div>
+    );
+};
 
-interface ForkPlayerExtrasProps {
-    theme: Theme;
-    isDaylight: boolean;
-}
-
-const ForkPlayerExtras: React.FC<ForkPlayerExtrasProps> = ({ theme, isDaylight }) => {
+const ForkPlayerExtras: React.FC = () => {
     const { t } = useTranslation();
     const autoHidePlayerChrome = usePlayerChromeSettingsStore(state => state.autoHidePlayerChrome);
     const toggleAutoHidePlayerChrome = usePlayerChromeSettingsStore(state => state.handleToggleAutoHidePlayerChrome);
@@ -59,7 +42,6 @@ const ForkPlayerExtras: React.FC<ForkPlayerExtrasProps> = ({ theme, isDaylight }
     const toggleHidePlayerTranslationSubtitle = useTypographySettingsStore(state => state.handleToggleHidePlayerTranslationSubtitle);
     const showHarmonySubtitle = useTypographySettingsStore(state => state.showHarmonySubtitle);
     const toggleShowHarmonySubtitle = useTypographySettingsStore(state => state.handleToggleShowHarmonySubtitle);
-    const toggleOffClass = isDaylight ? 'bg-black/10' : 'bg-white/10';
 
     // OBS static URL is a web-deploy concept, so these copy buttons are web-only.
     const isElectron = typeof window !== 'undefined' && Boolean((window as { electron?: unknown }).electron);
@@ -67,38 +49,30 @@ const ForkPlayerExtras: React.FC<ForkPlayerExtrasProps> = ({ theme, isDaylight }
 
     return (
         <>
-            <div className="pt-2 border-t border-white/5 space-y-2">
+            <div className="pt-1 border-t border-white/5">
                 <QuickToggleRow
                     label={t('options.autoHidePlayerChrome')}
                     hint={t('options.autoHidePlayerChromeDesc')}
                     on={autoHidePlayerChrome}
-                    accent={theme.secondaryColor}
-                    offClass={toggleOffClass}
-                    onToggle={() => toggleAutoHidePlayerChrome(!autoHidePlayerChrome)}
+                    onChange={toggleAutoHidePlayerChrome}
                 />
                 <QuickToggleRow
                     label={t('options.hidePlayerProgressBar')}
                     hint={t('options.hidePlayerProgressBar')}
                     on={hidePlayerProgressBar}
-                    accent={theme.secondaryColor}
-                    offClass={toggleOffClass}
-                    onToggle={() => toggleHidePlayerProgressBar(!hidePlayerProgressBar)}
+                    onChange={toggleHidePlayerProgressBar}
                 />
                 <QuickToggleRow
                     label={t('options.hidePlayerTranslationSubtitle')}
                     hint={t('options.hidePlayerTranslationSubtitleDesc')}
                     on={hidePlayerTranslationSubtitle}
-                    accent={theme.secondaryColor}
-                    offClass={toggleOffClass}
-                    onToggle={() => toggleHidePlayerTranslationSubtitle(!hidePlayerTranslationSubtitle)}
+                    onChange={toggleHidePlayerTranslationSubtitle}
                 />
                 <QuickToggleRow
                     label={t('options.showHarmonySubtitle')}
                     hint={t('options.showHarmonySubtitleDesc')}
                     on={showHarmonySubtitle}
-                    accent={theme.secondaryColor}
-                    offClass={toggleOffClass}
-                    onToggle={() => toggleShowHarmonySubtitle(!showHarmonySubtitle)}
+                    onChange={toggleShowHarmonySubtitle}
                 />
             </div>
 
