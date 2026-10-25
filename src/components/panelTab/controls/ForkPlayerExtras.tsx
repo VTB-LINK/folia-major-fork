@@ -77,9 +77,10 @@ const ForkPlayerExtras: React.FC = () => {
             </div>
 
             {/* 与设置里同一组 OBS 链接行（主题模式、复制链接、有上传图片时复制 CSS）；链接是给舞台源的，
-                没有开着的 web 舞台源时不显示。 */}
+                没有开着的 web 舞台源时不显示。设置页的行自带 16px 左右内边距，细线也从 16px 起；面板里
+                它们要和上面的开关同宽，所以去掉内边距、让细线通长。 */}
             {!isElectron && webObsSource !== null && (
-                <div className="mt-2">
+                <div className="mt-2 [&_.st-row]:pl-0 [&_.st-row]:pr-0 [&_.st-row]:before:left-0!">
                     <ObsLinkRows />
                 </div>
             )}
