@@ -105,7 +105,7 @@ const ForkPlayerExtras: React.FC<ForkPlayerExtrasProps> = ({ theme, isDaylight }
             {/* 与设置里同一组 OBS 链接行（主题模式、复制链接、有上传图片时复制 CSS）；链接是给舞台源的，
                 没有开着的 web 舞台源时不显示。 */}
             {!isElectron && webObsSource !== null && (
-                <div className="pt-2 border-t border-white/5">
+                <div className="mt-2">
                     <ObsLinkRows />
                 </div>
             )}
