@@ -4,7 +4,7 @@ import { Pause, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import VisualizerRenderer from '../VisualizerRenderer';
-import { type StoredCustomLyricsFont, type SubtitleContentMode, type Theme, type VisualizerMode } from '../../../types';
+import { type StoredCustomLyricsFont, type SubtitleContentMode, type SubtitleOverlayLayout, type Theme, type VisualizerMode } from '../../../types';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { selectVisualizerSettingsSnapshot, useVisualizerSettingsStore } from '../../../stores/useVisualizerSettingsStore';
 import { PictureGrid, Tooltip } from '../../modal/settings/kit';
@@ -16,7 +16,7 @@ import { colorWithAlpha } from '../colorMix';
 import { type PreviewPlaceholderId } from '../PreviewPlaceholder';
 import { VISUALIZER_REGISTRY, getVisualizerModeLabel, getVisualizerRegistryEntry } from '../registry';
 import VisPlaygroundPreviewHotspots, { type VisPlaygroundEditSection, type VisPlaygroundHotspotSection } from './VisPlaygroundPreviewHotspots';
-import VisPlaygroundSampleStage from './VisPlaygroundSampleStage';
+import VisPlaygroundSampleStage, { SampleBox } from './VisPlaygroundSampleStage';
 import VisPlaygroundSettingsPanel from './VisPlaygroundSettingsPanel';
 import FontPicker, { type LocalFontEntry } from './FontPicker';
 import { useTuningDrafts } from './useTuningDrafts';
@@ -28,6 +28,7 @@ import { usePreviewClock } from '../preview/usePreviewClock';
 import PreviewSourceSwitch, { type PreviewSource } from '../preview/PreviewSourceSwitch';
 import { useLivePreviewFeed } from '../preview/useLivePreviewFeed';
 import { useStillClockPulse } from '../preview/stillClockPulse';
+import { DEFAULT_SUBTITLE_OVERLAY_LAYOUT } from '../../../utils/lyrics/subtitleOverlayLayout';
 
 interface VisPlaygroundProps {
     theme?: Theme;
@@ -41,6 +42,7 @@ interface VisPlaygroundProps {
     hideTranslationSubtitle?: boolean;
     showSubtitleTranslation?: boolean;
     subtitleContentMode?: SubtitleContentMode;
+    subtitleOverlayLayout?: SubtitleOverlayLayout;
     subtitleOverlayOpacity?: number;
     subtitleOverlayBackground?: boolean;
     subtitleUpcomingLyricsBlur?: boolean;
@@ -75,6 +77,7 @@ interface VisPlaygroundProps {
     onToggleHideTranslationSubtitle?: (hidden: boolean) => void;
     onToggleShowSubtitleTranslation?: (shown: boolean) => void;
     onSubtitleContentModeChange?: (mode: SubtitleContentMode) => void;
+    onSubtitleOverlayLayoutChange?: (layout: SubtitleOverlayLayout) => void;
     onSubtitleOverlayOpacityChange?: (opacity: number) => void;
     onToggleSubtitleOverlayBackground?: (enabled: boolean) => void;
     onToggleSubtitleUpcomingLyricsBlur?: (enabled: boolean) => void;
@@ -131,6 +134,7 @@ const VisPlayground: React.FC<VisPlaygroundProps> = ({
     hideTranslationSubtitle = false,
     showSubtitleTranslation = true,
     subtitleContentMode,
+    subtitleOverlayLayout = DEFAULT_SUBTITLE_OVERLAY_LAYOUT,
     subtitleOverlayOpacity = 0.6,
     subtitleOverlayBackground = true,
     subtitleUpcomingLyricsBlur = true,
@@ -165,6 +169,7 @@ const VisPlayground: React.FC<VisPlaygroundProps> = ({
     onToggleHideTranslationSubtitle,
     onToggleShowSubtitleTranslation,
     onSubtitleContentModeChange,
+    onSubtitleOverlayLayoutChange,
     onSubtitleOverlayOpacityChange,
     onToggleSubtitleOverlayBackground,
     onToggleSubtitleUpcomingLyricsBlur,
@@ -183,8 +188,8 @@ const VisPlayground: React.FC<VisPlaygroundProps> = ({
     // What the player shows now, when the sample is set aside for it; null while it has no lyrics.
     const livePreview = useLivePreviewFeed({ enabled: previewSource === 'live', paused: isPreviewPaused, stageRef: previewBoxRef });
     const live = livePreview.content;
-    // The sample's clock; the small pictures of the styles follow it too. It rests while the live picture is drawn.
-    const previewClock = usePreviewClock({ mode: visualizerMode, placeholderId: previewPlaceholderId, paused: isPreviewPaused || live !== null });
+    // The small pictures still use the sample's clock while the big preview shows the live picture.
+    const previewClock = usePreviewClock({ mode: visualizerMode, placeholderId: previewPlaceholderId, paused: isPreviewPaused });
     const previewPlaceholder = previewClock.placeholder;
     // The sample, paused, has no change of time for a style mounted anew (a switch from the live picture).
     useStillClockPulse({ time: previewClock.currentTime, still: isPreviewPaused && live === null, boxRef: previewBoxRef, restartKey: previewSource });
@@ -428,6 +433,7 @@ const VisPlayground: React.FC<VisPlaygroundProps> = ({
         } else {
             onToggleShowSubtitleTranslation?.(true);
         }
+        onSubtitleOverlayLayoutChange?.(DEFAULT_SUBTITLE_OVERLAY_LAYOUT);
         onToggleSubtitleOverlayBackground?.(true);
         onToggleSubtitleUpcomingLyricsBlur?.(true);
         onToggleShowHarmonySubtitle?.(true);
@@ -477,9 +483,10 @@ const VisPlayground: React.FC<VisPlaygroundProps> = ({
     const stage = (
         <>
             {/* The sample always shows the theme being previewed, whatever the window's own colours. */}
-            <div
+            <SampleBox
                 ref={previewBoxRef}
-                className="relative min-h-[160px] flex-1 overflow-hidden rounded-xl shadow-[0_0_0_1px_var(--st-line)]"
+                room="min-h-[160px] flex-1"
+                className="relative overflow-hidden rounded-xl shadow-[0_0_0_1px_var(--st-line)]"
                 style={{ backgroundColor: previewTheme.backgroundColor }}
             >
                 {/* The style is drawn as large as the app's window and scaled to fit. */}
@@ -523,6 +530,7 @@ const VisPlayground: React.FC<VisPlaygroundProps> = ({
                             hideTranslationSubtitle={hideTranslationSubtitle}
                             showSubtitleTranslation={showSubtitleTranslation}
                             subtitleContentMode={resolvedSubtitleContentMode}
+                            subtitleOverlayLayout={subtitleOverlayLayout}
                             visualizerTunings={tuningDrafts.sampleTunings}
                             onVisualizerTuningChange={styleDraft.change}
                             {...styleAssets}
@@ -547,7 +555,7 @@ const VisPlayground: React.FC<VisPlaygroundProps> = ({
                         {isPreviewPaused ? <Play size={14} fill="currentColor" /> : <Pause size={14} fill="currentColor" />}
                     </button>
                 </Tooltip>
-            </div>
+            </SampleBox>
             <div className="flex shrink-0 flex-col">
                 <h3 className="mb-2 flex min-h-6 items-center px-1 text-[13px] font-semibold leading-5 text-[color:var(--st-t2)]">
                     {t('options.lyricStyles')}
@@ -613,6 +621,8 @@ const VisPlayground: React.FC<VisPlaygroundProps> = ({
             onToggleShowSubtitleTranslation={onToggleShowSubtitleTranslation}
             subtitleContentMode={resolvedSubtitleContentMode}
             onSubtitleContentModeChange={onSubtitleContentModeChange}
+            subtitleOverlayLayout={subtitleOverlayLayout}
+            onSubtitleOverlayLayoutChange={onSubtitleOverlayLayoutChange}
             subtitleOverlayOpacity={draftSubtitleOverlayOpacity}
             onSubtitleOverlayOpacityChange={handleSubtitleOverlayOpacityDraft}
             subtitleOverlayBackground={subtitleOverlayBackground}
