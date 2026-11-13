@@ -31,6 +31,16 @@ exports[`mod tuning keys > are pinned, so a renamed or dropped key is a visible 
       "min": -5,
       "type": "number",
     },
+    "positionX": {
+      "max": 40,
+      "min": -40,
+      "type": "number",
+    },
+    "positionY": {
+      "max": 40,
+      "min": -40,
+      "type": "number",
+    },
     "radiusScale": {
       "max": 1.5,
       "min": 0.5,
@@ -39,8 +49,24 @@ exports[`mod tuning keys > are pinned, so a renamed or dropped key is a visible 
     "showAxisLine": {
       "type": "boolean",
     },
+    "showTranslation": {
+      "type": "boolean",
+    },
+    "translationLetterSpacingOffset": {
+      "max": 20,
+      "min": -5,
+      "type": "number",
+    },
+    "translationScale": {
+      "max": 2,
+      "min": 0.5,
+      "type": "number",
+    },
   },
   "classic": {
+    "avoidOverlap": {
+      "type": "boolean",
+    },
     "breathingFloatMultiplier": {
       "max": 2,
       "min": 0,
@@ -401,6 +427,9 @@ exports[`mod tuning keys > are pinned, so a renamed or dropped key is a visible 
       ],
       "type": "choice",
     },
+    "simulatedBeat": {
+      "type": "boolean",
+    },
     "tiltShift": {
       "max": 1,
       "min": 0,
@@ -434,6 +463,14 @@ exports[`mod tuning keys > are pinned, so a renamed or dropped key is a visible 
       ],
       "type": "choice",
     },
+    "descriptionVisibility": {
+      "options": [
+        "auto",
+        "always",
+        "hidden",
+      ],
+      "type": "choice",
+    },
     "fontScale": {
       "max": 1.5,
       "min": 0.7,
@@ -441,6 +478,17 @@ exports[`mod tuning keys > are pinned, so a renamed or dropped key is a visible 
     },
     "keywordColoringEnabled": {
       "type": "boolean",
+    },
+    "mirrorLayout": {
+      "type": "boolean",
+    },
+    "portraitHangerVisibility": {
+      "options": [
+        "auto",
+        "always",
+        "hidden",
+      ],
+      "type": "choice",
     },
     "portraitStyle": {
       "options": [
@@ -507,6 +555,7 @@ exports[`mod tuning keys > are pinned, so a renamed or dropped key is a visible 
       "options": [
         "rain",
         "dew",
+        "snow",
       ],
       "type": "choice",
     },
@@ -564,6 +613,21 @@ exports[`mod tuning keys > are pinned, so a renamed or dropped key is a visible 
       "min": 0.5,
       "type": "number",
     },
+    "snow": {
+      "max": 3,
+      "min": 0,
+      "type": "number",
+    },
+    "snowMelt": {
+      "max": 3,
+      "min": 0.25,
+      "type": "number",
+    },
+    "snowSize": {
+      "max": 2,
+      "min": 0.5,
+      "type": "number",
+    },
     "spot": {
       "max": 2,
       "min": 0,
@@ -591,6 +655,9 @@ exports[`mod tuning keys > are pinned, so a renamed or dropped key is a visible 
     },
   },
   "partita": {
+    "avoidOverlap": {
+      "type": "boolean",
+    },
     "showGuideLines": {
       "type": "boolean",
     },
@@ -627,6 +694,27 @@ exports[`mod tuning keys > are pinned, so a renamed or dropped key is a visible 
     "enableLineGlow": {
       "type": "boolean",
     },
+    "hubView": {
+      "type": "boolean",
+    },
+    "hubViewBack": {
+      "max": 3,
+      "min": 0.2,
+      "type": "number",
+    },
+    "hubViewHeight": {
+      "max": 3,
+      "min": 0.4,
+      "type": "number",
+    },
+    "mirrorLayout": {
+      "type": "boolean",
+    },
+    "parallaxDepth": {
+      "max": 2,
+      "min": 0,
+      "type": "number",
+    },
     "showCenterGradient": {
       "type": "boolean",
     },
@@ -644,6 +732,16 @@ exports[`mod tuning keys > are pinned, so a renamed or dropped key is a visible 
     "tickSnappiness": {
       "max": 2,
       "min": 0.5,
+      "type": "number",
+    },
+    "tiltAxisDeg": {
+      "max": 90,
+      "min": -90,
+      "type": "number",
+    },
+    "tiltDeg": {
+      "max": 70,
+      "min": -70,
       "type": "number",
     },
     "wheelCenterX": {

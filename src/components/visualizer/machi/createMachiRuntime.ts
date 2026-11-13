@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { MotionValue } from 'framer-motion';
 import type { AudioBands, Line, LyricRenderQuality, Theme } from '../../../types';
 import { getDrumHits, type DrumHits } from '../../../services/analysis/drumHits';
-import { BEAT_EFFECT_IDS } from '../../../services/beatFx/beatEffects';
+import { BEAT_EFFECT_IDS, smartBeatActive } from '../../../services/beatFx/beatEffects';
 import {
     getBeatEffectStrength,
     getBeatFxHeard,
@@ -20,6 +20,8 @@ import {
     resetMachiBeatFrame,
     resolveMachiDrumRipples,
     resolveMachiNeonPulse,
+    resolveMachiSteadyNeonPulse,
+    resolveMachiSteadyScreenFlash,
     resolveMachiScreenFlash,
     type MachiBeatFrame,
 } from './engine/beatFx';
@@ -51,7 +53,7 @@ import {
 import { MachiGround } from './engine/fx/ground';
 import { MachiPost, type MachiAtmosphereFrame } from './engine/fx/post';
 import { resolveMachiLens } from './engine/lens';
-import { resolveMachiRenderQuality, type MachiRenderQuality } from './engine/quality';
+import { createMachiDegradeState, resolveMachiRenderQuality, stepMachiDegrade, type MachiRenderQuality } from './engine/quality';
 import { MachiReflection } from './engine/fx/reflection';
 import { compileInto, reportBrokenPrograms, waitForPrograms, yieldToMain } from './engine/programWarmup';
 import { MachiWeather } from './engine/fx/weather';
@@ -63,6 +65,8 @@ import { createMachiSnowUniforms, setMachiSnowRoofs } from './engine/snow';
 import { resolveMachiSceneId } from './machiTuning';
 import { MACHI_SCENES } from './scenes';
 import type { MachiScene, MachiSceneContent, MachiSceneContext } from './scenes/types';
+import { isGpuAnalysisActive } from '../../../services/analysis/gpuActivity';
+import { useVisualizerSettingsStore } from '../../../stores/useVisualizerSettingsStore';
 import { reportMachiDegrade, withdrawMachiDegrade } from './degradeStatus';
 import { reportMachiShownScene, withdrawMachiShownScene } from './shownScene';
 import type { MachiCameraView, MachiQuality, MachiSceneId, MachiTuning } from './types';
@@ -75,6 +79,7 @@ import type { MachiCameraView, MachiQuality, MachiSceneId, MachiTuning } from '.
 // 自己的 requestAnimationFrame 循环：暂停时只在镜头还在动、颜色还在插值、或外面要求补一帧时出帧，其余时间不跑。
 // 每帧的时间只从 currentTime（歌词）和 MachiClock（氛围）读，不进 React。
 // 智能动感模式（engine/beatFx.ts）：每帧按节拍表与鼓点算出霓虹、涟漪、闪拍的量，涟漪交给地面，其余随场景帧交给场景。
+// 没开智能动感模式、开着「模拟节拍」（tuning.simulatedBeat）时，霓虹随拍和大屏闪拍按固定节拍走（MACHI_BEAT.steady），没有涟漪。
 
 export interface MachiSongContext {
     seed: string | number;
@@ -131,9 +136,10 @@ const INTENSITY_SCALE: Record<Theme['animationIntensity'], number> = { calm: 0.7
 /** 每个窗口有车开过的概率，按主题的动效强度。 */
 const TRAFFIC_CHANCE: Record<Theme['animationIntensity'], number> = { calm: 0.4, normal: 0.6, chaotic: 0.78 };
 
-/** 平均帧时超过它（约 48fps 以下）就降一档；至少隔这么久才看一次。 */
-const DEGRADE_FRAME_MS = 21;
+/** 自动降级至少隔这么久才看一次（怎么判见 engine/quality.ts 的 stepMachiDegrade）。 */
 const DEGRADE_WINDOW_MS = 2500;
+/** 刚起来、刚换了画质的这么久不算：着色器、贴图还在热身（新装的版本缓存是冷的），头几秒帧时偏高，不是跟不上。 */
+const DEGRADE_SETTLE_MS = 10000;
 
 /** 换主题时重画招牌的防抖（调色时主题一直在变）。 */
 const SIGN_REPAINT_DEBOUNCE_MS = 150;
@@ -220,6 +226,14 @@ export class MachiRuntime {
     private degrade = 0;
     private renderQuality: MachiRenderQuality;
     private qualityCheckedAt = 0;
+    /** 自动降级在两次检查之间记着的（刷新间隔、连着几次慢、刚降一格时那次的平均帧时）。 */
+    private degradeState = createMachiDegradeState();
+    /** 窗口所在的屏（尺寸、像素比、在桌面上的位置）和全局帧率上限：变了就是挪到了别的屏上或改了上限，刷新间隔重新推。 */
+    private degradeScreen = '';
+    /** 这之前的帧不算进自动降级（NaN：还没开始渲染，第一次检查时从那一刻起算）。 */
+    private settleUntil = Number.NaN;
+    /** 最近一次看到 GPU 分析任务（拍点、鼓点分离）在跑的时刻：这段时间的帧不算进自动降级。 */
+    private analysisSeenAt = Number.NEGATIVE_INFINITY;
     private size = { width: 1, height: 1 };
     private readonly audio = new MachiAudioFollower();
     private boardTarget: MachiBoardTarget | null = null;
@@ -584,22 +598,48 @@ export class MachiRuntime {
         this.post.setQuality(quality);
         this.resize(this.size.width, this.size.height);
         this.frameTimes.length = 0;
+        this.degradeState = { ...this.degradeState, slowChecks: 0 };
+        this.settleUntil = performance.now() + DEGRADE_SETTLE_MS;
         this.reportDegrade();
         this.wake();
     }
 
     /** 帧时一直偏高就在用户那套画质之下再压一格（engine/quality.ts 的顺序），只降不升；自动降级关着时不管。 */
     private adaptQuality(now: number) {
-        if (this.options.previewMode || !this.tuning.quality.adaptive || this.clock.paused || document.visibilityState !== 'visible') return;
+        if (this.options.previewMode || !this.tuning.quality.adaptive) return;
+        // 刚起来或刚换画质（热身）、暂停、窗口在后台、GPU 分析任务（换歌时的拍点、鼓点分离）占着 GPU：这段的帧不算，攒的也清掉，回来重新攒。
+        if (isGpuAnalysisActive(now)) this.analysisSeenAt = now;
+        if (Number.isNaN(this.settleUntil)) this.settleUntil = now + DEGRADE_SETTLE_MS;
+        if (now < this.settleUntil || this.clock.paused || document.visibilityState !== 'visible' || now - this.analysisSeenAt < DEGRADE_WINDOW_MS) {
+            this.frameTimes.length = 0;
+            if (this.degradeState.slowChecks !== 0) this.degradeState = { ...this.degradeState, slowChecks: 0 };
+            this.qualityCheckedAt = now;
+            return;
+        }
         if (now - this.qualityCheckedAt < DEGRADE_WINDOW_MS || this.frameTimes.length < 60) return;
         this.qualityCheckedAt = now;
-        const average = this.frameTimes.reduce((sum, value) => sum + value, 0) / this.frameTimes.length;
-        if (average <= DEGRADE_FRAME_MS) return;
+        // 全局的帧率上限也算进来：改了上限，一帧应有的间隔跟着变，学到的作废重新推。
+        const { screen } = window;
+        const frameRate = useVisualizerSettingsStore.getState().visualizerFrameRate;
+        const screenKey = `${screen.width}x${screen.height}@${window.devicePixelRatio}:${(screen as Screen & { availLeft?: number }).availLeft ?? 0},${(screen as Screen & { availTop?: number }).availTop ?? 0}|${frameRate}`;
+        if (screenKey !== this.degradeScreen) {
+            const changed = this.degradeScreen !== '';
+            this.degradeScreen = screenKey;
+            this.degradeState = createMachiDegradeState();
+            // 中途换了屏或上限：这一段前后两种间隔混着，较快那一成可能是换之前的，丢掉从现在起重新攒。
+            if (changed) {
+                this.frameTimes.length = 0;
+                return;
+            }
+        }
+        const { state, degrade, average, threshold } = stepMachiDegrade(this.degradeState, this.frameTimes);
+        this.degradeState = state;
+        if (!degrade) return;
         // 已经压到底：再要一格也压不下去了。
         if (this.resolveQuality(this.degrade + 1).degrade <= this.renderQuality.degrade) return;
         this.degrade += 1;
         this.applyQuality();
-        console.info(`[Machi] frame time ${average.toFixed(1)} ms, degraded ${this.degrade} step(s)`);
+        console.info(`[Machi] frame time ${average.toFixed(1)} ms (threshold ${threshold.toFixed(1)} ms), degraded ${this.degrade} step(s)`);
     }
 
     /**
@@ -844,12 +884,23 @@ export class MachiRuntime {
 
     /**
      * 智能动感模式：霓虹随拍读整张节拍表、鼓点效果读这首歌的鼓点，都按听到的时间取；涟漪交给地面。
-     * 静态模式、暂停（停在霓虹或大屏亮到一半的那帧不留着）、效果关着、拍点 / 鼓点还没有时都是常态值，
-     * 画面和关掉时一样。
+     * 静态模式、暂停（停在霓虹或大屏亮到一半的那帧不留着）、效果关着、拍点 / 鼓点还没有时都是常态值。
+     * 没开智能动感模式时，开着「模拟节拍」就让霓虹随拍和大屏闪拍按氛围时钟上的固定节拍走（engine/beatFx.ts 的
+     * MACHI_BEAT.steady），关着就是常态值。
      */
     private stepBeat(songTime: number): MachiBeatFrame {
         const beat = resetMachiBeatFrame(this.beat);
         const idle = this.clock.paused;
+        const focus = this.stage.focusPoint;
+        if (!smartBeatActive(useVisualizerSettingsStore.getState().smartBeat)) {
+            // 没开智能动感：没有鼓点，涟漪清空；开着模拟节拍时霓虹、大屏按固定节拍走。
+            resolveMachiDrumRipples(null, 0, 0, this.kickRings);
+            this.ground.setKicks(focus.x, focus.z, this.kickRings);
+            if (idle || !this.tuning.simulatedBeat) return beat;
+            resolveMachiSteadyNeonPulse(this.clock.elapsed, 1, beat);
+            resolveMachiSteadyScreenFlash(this.clock.elapsed, 1, beat);
+            return beat;
+        }
         const neonStrength = idle ? 0 : getBeatEffectStrength(BEAT_EFFECT_IDS.machiNeonPulse);
         const rippleStrength = idle ? 0 : getBeatEffectStrength(BEAT_EFFECT_IDS.machiDrumRipple);
         const flashStrength = idle ? 0 : getBeatEffectStrength(BEAT_EFFECT_IDS.machiScreenFlash);
@@ -865,7 +916,6 @@ export class MachiRuntime {
         // 光斑的一跳只在干的地面上（湿的地面上是涟漪）。
         beat.thump = resolveMachiDrumRipples(hits, time, rippleStrength, this.kickRings) * (1 - machiRippleWetness(this.environment.wetness));
         resolveMachiScreenFlash(hits, time, flashStrength, beat);
-        const focus = this.stage.focusPoint;
         this.ground.setKicks(focus.x, focus.z, this.kickRings);
         return beat;
     }
@@ -937,8 +987,9 @@ export class MachiRuntime {
         this.camera.setCustom(this.customView(this.stageId));
         this.camera.setMotion(tuning.motion, tuning.motionSpeed);
         if (qualityKey(previous.quality) !== qualityKey(tuning.quality)) {
-            // 换了画质设置：自动降级从这套设置重新开始。
+            // 换了画质设置：自动降级从这套设置重新开始，不拿上一套降级时的平均帧时比。
             this.degrade = 0;
+            this.degradeState = { ...this.degradeState, degradedAverage: 0 };
             this.applyQuality();
         }
         this.wantsFrame = true;
@@ -953,6 +1004,7 @@ export class MachiRuntime {
         const { renderScale, antialias } = this.tuning.quality;
         if (renderScale !== 'global' && antialias !== 'global') return;
         this.degrade = 0;
+        this.degradeState = { ...this.degradeState, degradedAverage: 0 };
         this.applyQuality();
     }
 

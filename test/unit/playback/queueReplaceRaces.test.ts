@@ -40,6 +40,7 @@ const env = vi.hoisted(() => {
         missingDetail: new Set<string>(),
         /** An installed `beforePlay` hook (a mod's) that answers when this resolves, or none. */
         beforePlay: null as Promise<unknown> | null,
+        cancelBeforePlay: false,
         effects: [] as Array<() => unknown>,
         slots: [] as Array<{ current: unknown }>,
         slotAt: 0,
@@ -87,13 +88,14 @@ vi.mock('react-i18next', () => ({
 }));
 vi.mock('@/services/hostExtensionHooks', () => ({
     hasBeforePlayHook: () => Boolean(env.self.beforePlay),
-    runBeforePlayHook: async (song: unknown) => { await env.self.beforePlay; return song; },
+    runBeforePlayHook: async (song: unknown) => { await env.self.beforePlay; return env.self.cancelBeforePlay ? null : song; },
     lyricsForNoLyrics: () => null,
     notifyPlaybackFailed: () => undefined,
 }));
 vi.mock('@/services/onlineMusic/omni', () => ({
     omni: {
         canPlaySong: () => true,
+        canPlayExternally: () => false,
         getProviderLabel: (id: string) => id,
         getPersonalFm: () => env.self.fmBatch ?? Promise.resolve([]),
         getSongReplacement: async (song: { id: string }) => env.self.replacementFor.get(String(song.id)) ?? null,
@@ -132,6 +134,11 @@ vi.mock('@/services/onlinePlayback', () => ({
     loadOnlineSongLyrics: async () => {},
 }));
 vi.mock('@/utils/onlineLyricsState', () => ({ loadOnlineLyricsState: async () => null }));
+// The sign-out saves the queue left for the next launch; there is no database here.
+vi.mock('@/components/app/playback/persistPlaybackCache', () => ({
+    persistPlaybackCache: async () => undefined,
+    forgetPlaybackCache: async () => undefined,
+}));
 
 const { usePlaybackQueueController } = await import('@/components/app/playback/start/usePlaybackQueueController');
 const { usePlaybackRuntimeRefs } = await import('@/components/app/playback/usePlaybackRuntimeRefs');
@@ -141,12 +148,16 @@ const { makeSongCurrent } = await import('@/components/app/playback/currentSong'
 const { noteWholeQueueWrite } = await import('@/services/wholeQueueWrites');
 const { notePersonalFmEnded } = await import('@/components/app/playback/personalFmEndings');
 const { dropPlaysOfProvider } = await import('@/components/app/playback/currentSong');
+const { dropProviderSongs, leaveProviderForSwitch } = await import('@/library/app/createLibraryAccountPort');
+const { useOnlineProviderAccountStore } = await import('@/stores/useOnlineProviderAccountStore');
 const { getPlaybackSongKey } = await import('@/utils/appPlaybackGuards');
 const { resetPlaybackStore } = await import('./currentSongWatch');
 const { onlineFailureOf } = await import('@/services/onlineMusic/failure/onlineFailureCase');
 const { usePersonalFmModeStore } = await import('@/stores/usePersonalFmModeStore');
 const { useAudioSettingsStore } = await import('@/stores/useAudioSettingsStore');
 const { queueStartsSoFar } = await import('@/components/app/playback/start/queueStarts');
+const { onQueueEnd } = await import('@/components/scenes/engine/queueEnd');
+const { registerPersonalFmLanding } = await import('@/components/app/playback/start/personalFmLanding');
 
 const online = (id: string): SongResult => ({
     id, name: id.toUpperCase(), artists: [], album: { id: '', name: '' }, durationMs: 1000,
@@ -203,6 +214,7 @@ beforeEach(() => {
     env.self.detailCalls.length = 0;
     env.self.missingDetail.clear();
     env.self.beforePlay = null;
+    env.self.cancelBeforePlay = false;
     env.self.effects.length = 0;
     env.self.slots.length = 0;
     Object.values(prefetch).forEach(fn => fn.mockClear());
@@ -342,6 +354,86 @@ describe('a play that lands after the queue was replaced whole', () => {
 });
 
 describe('Personal FM and a play that does not land', () => {
+    it.each(['retry', 'skip', 'stop'] as const)('keeps the pending station through a failure and %s', async (action) => {
+        playerWith([f1, f2], f1, true);
+        usePersonalFmModeStore.setState({ stations: { bodian: { id: 'a', selection: { mode: 'DEFAULT', scene: null } } } });
+        const batch = action === 'skip' ? [f3, p1] : [f3];
+        registerPersonalFmLanding(batch, () => usePersonalFmModeStore.getState().startStation('bodian', 'b', { mode: 'DEFAULT', scene: null }));
+        env.self.audioResultFor.set('f3', unavailable(action === 'skip' ? 'no-audio' : 'unknown'));
+        const { queue, render } = mount();
+        await queue.playSong(f3, batch, true);
+        expect(usePersonalFmModeStore.getState().stations.bodian.id).toBe('a');
+        if (action !== 'stop') {
+            render();
+            env.self.audioResultFor.delete('f3');
+            status()?.onAction?.();
+            await settle();
+        }
+        expect(usePersonalFmModeStore.getState().stations.bodian.id).toBe(action === 'stop' ? 'a' : 'b');
+    });
+    it('does not revive an older station when another card starts and is cancelled', async () => {
+        playerWith([f1, f2], f1, true);
+        usePersonalFmModeStore.setState({ stations: { bodian: { id: 'a', selection: { mode: 'DEFAULT', scene: null } } } });
+        const batch = [f3];
+        registerPersonalFmLanding(batch, () => usePersonalFmModeStore.getState().startStation('bodian', 'b', { mode: 'DEFAULT', scene: null }));
+        env.self.audioResultFor.set('f3', unavailable('unknown'));
+        const { queue, render } = mount();
+        await queue.playSong(f3, batch, true);
+        const retry = status()?.onAction;
+        env.self.beforePlay = Promise.resolve();
+        env.self.cancelBeforePlay = true;
+        await queue.playSong(p1, [p1], true);
+        env.self.beforePlay = null;
+        env.self.cancelBeforePlay = false;
+        env.self.audioResultFor.delete('f3');
+        render();
+        retry?.();
+        await settle();
+        expect(usePersonalFmModeStore.getState().stations.bodian.id).toBe('a');
+    });
+    it('keeps the on-air station when a mod cancels a new station whose first song overlaps', async () => {
+        playerWith([f1, f2], f1, true);
+        usePersonalFmModeStore.setState({ stations: { bodian: { id: 'a', selection: { mode: 'FAMILIAR', scene: null } } } });
+        const batch = [f1, f3];
+        registerPersonalFmLanding(batch, () => usePersonalFmModeStore.getState().startStation('bodian', 'b', { mode: 'DEFAULT', scene: null }));
+        env.self.beforePlay = Promise.resolve();
+        env.self.cancelBeforePlay = true;
+        await mount().queue.playSong(f1, batch, true);
+        expect(usePersonalFmModeStore.getState().stations.bodian.id).toBe('a');
+        expect(store().playQueue).toEqual([f1, f2]);
+    });
+
+    it('puts the new station on air only when its FM play lands', async () => {
+        playerWith([f1, f2], f1, true);
+        usePersonalFmModeStore.setState({ stations: { bodian: { id: 'a', selection: { mode: 'DEFAULT', scene: null } } } });
+        const batch = [f1, f3];
+        registerPersonalFmLanding(batch, () => usePersonalFmModeStore.getState().startStation('bodian', 'b', { mode: 'DEFAULT', scene: null }));
+        const release = holdAddress(f1);
+        const play = mount().queue.playSong(f1, batch, true);
+        await settle();
+        expect(usePersonalFmModeStore.getState().stations.bodian.id).toBe('a');
+        release();
+        await play;
+        expect(usePersonalFmModeStore.getState().stations.bodian.id).toBe('b');
+    });
+
+    it('keeps the station mode when an ordinary play fails and FM is restored', async () => {
+        playerWith([f1, f2], f1, true);
+        usePersonalFmModeStore.setState({ stations: { bodian: { id: 'a', selection: { mode: 'FAMILIAR', scene: null } } } });
+        env.self.audioResultFor.set('p1', unavailable('sign-in-needed'));
+        await mount().queue.playSong(p1, [p1, p2], false);
+        expect(store().isFmMode).toBe(true);
+        expect(usePersonalFmModeStore.getState().stations.bodian.selection).toEqual({ mode: 'FAMILIAR', scene: null });
+    });
+
+    it('resets the station mode when an ordinary play lands', async () => {
+        playerWith([f1, f2], f1, true);
+        usePersonalFmModeStore.setState({ stations: { bodian: { id: 'a', selection: { mode: 'FAMILIAR', scene: null } } } });
+        await mount().queue.playSong(p1, [p1, p2], false);
+        expect(store().isFmMode).toBe(false);
+        expect(usePersonalFmModeStore.getState().stations.bodian.selection).toEqual({ mode: 'DEFAULT', scene: null });
+    });
+
     it('is not turned back on by a play that fails after the queue was replaced whole', async () => {
         // FM plays; the user picks a playlist song, which leaves FM, and its address is refused.
         playerWith([f1, f2, f3], f1, true);
@@ -497,6 +589,25 @@ describe('Personal FM ended by a platform switch while a play was on its way', (
     });
 });
 
+describe('a platform switch while a play that turns Personal FM on was on its way', () => {
+    it('that play lands as a plain play: FM stays off, as the switch left it', async () => {
+        playerWith([a, b], a, false);
+        const { queue } = mount();
+        const hook = deferred();
+        env.self.beforePlay = hook.promise;
+        const play = queue.playSong(f1, [f1, f2], true);
+        await settle();
+
+        // The switch itself (library/app/createLibraryAccountPort): FM was not on yet, there was nothing to write off.
+        leaveProviderForSwitch('bodian', 'qq');
+        hook.resolve();
+        await play;
+
+        expect(store().currentSong).toMatchObject({ id: 'f1' });
+        expect(store().isFmMode).toBe(false);
+    });
+});
+
 describe('a sign-out of another platform while a play was on its way', () => {
     // A song of another platform than the one that plays on.
     const signedOut = { ...online('q1'), sourceRef: { kind: 'online', providerId: 'qq', mediaId: 'q1' } } as SongResult;
@@ -534,6 +645,41 @@ describe('a sign-out of another platform while a play was on its way', () => {
 
         expect(store().currentSong).toMatchObject({ id: 'a' });
         expect(keys(store().playQueue)).toEqual(keys([a, b]));
+    });
+});
+
+describe('a sign-out of the Personal FM platform while a plain play of another platform was on its way', () => {
+    // A song of another platform; the play of it turned FM off for now and would put it back if it fails.
+    const other = { ...online('q1'), sourceRef: { kind: 'online', providerId: 'qq', mediaId: 'q1' } } as SongResult;
+    const host = {
+        automixRef: { current: null }, audioRef: { current: null }, shouldAutoPlay: { current: false },
+        setLyrics: () => {}, setIsLyricsLoading: () => {},
+    } as unknown as Parameters<typeof dropProviderSongs>[0];
+    let activeBefore: ReturnType<typeof useOnlineProviderAccountStore.getState>['activeProviderId'];
+
+    beforeEach(() => {
+        activeBefore = useOnlineProviderAccountStore.getState().activeProviderId;
+        useOnlineProviderAccountStore.setState({ activeProviderId: 'bodian' });
+    });
+    afterEach(() => {
+        useOnlineProviderAccountStore.setState({ activeProviderId: activeBefore });
+    });
+
+    it('FM stays off when that play then fails', async () => {
+        playerWith([f1, f2, f3], f1, true);
+        const { queue } = mount();
+        env.self.audioResultFor.set('q1', unavailable('sign-in-needed'));
+        const release = holdAddress(other);
+        const play = queue.playSong(other, [other]);
+        await settle();
+        expect(store().isFmMode).toBe(false);
+
+        dropProviderSongs(host, 'bodian');
+        release();
+        await play;
+
+        expect(store().isFmMode).toBe(false);
+        expect(store().playQueue).toEqual([]);
     });
 });
 
@@ -965,5 +1111,22 @@ describe('a Stage API add', () => {
         expect(complete).toHaveBeenCalledWith(expect.objectContaining({
             requestId: 'p1', ok: false, error: 'Song qq:1 was not found.',
         }));
+    });
+});
+
+describe('the end of the queue', () => {
+    it('tells a scene the queue played out only when the last track played to its end', async () => {
+        playerWith([a, b], b);
+        const heard = vi.fn();
+        const stop = onQueueEnd(heard);
+        try {
+            // A skip after a failure, or an audio error, that finds no next track stops without it.
+            await mount().queue.handleNextTrack({ allowStopOnMissing: true, fromSong: b });
+            expect(heard).not.toHaveBeenCalled();
+            await mount().queue.handleNextTrack({ allowStopOnMissing: true, playedToEnd: true });
+            expect(heard).toHaveBeenCalledTimes(1);
+        } finally {
+            stop();
+        }
     });
 });

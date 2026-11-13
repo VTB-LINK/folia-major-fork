@@ -7,11 +7,12 @@ import { Group, Row, Segmented, TextField, option, type SettingsGroupDef, type S
 // src/components/modal/settings/pages/ForkWebAiSettings.tsx
 // FORK-ONLY. 纯 web 的 AI 主题连接：用户自带 key，只存于本机浏览器（services/webAiConfig），主题请求经
 // SWA 无密钥中继（swa-api/）转发。桌面端由 ai/AiProviderSettings 配置（key 存主进程），两者互斥。
-// 外观页在非桌面端挂载它；分组经 available 让桌面端的设置搜索略过。
+// 外观页挂载它，桌面端不渲染；分组经 available 让桌面端的设置搜索略过。
+// 上游的 AI 服务页（AiServicePage）只在桌面端显示，所以 web 的这组留在外观页。
 
 const isDesktopApp = () => typeof window !== 'undefined' && Boolean(window.electron);
 
-const WEB_AI: SettingsGroupDef = { id: 'forkWebAi', titleKey: 'options.electronSettings', available: () => !isDesktopApp() };
+const WEB_AI: SettingsGroupDef = { id: 'forkWebAi', titleKey: 'options.settingsPageAi', available: () => !isDesktopApp() };
 const O = {
     provider: option(WEB_AI, 'forkWebAiProvider', 'options.aiProvider'),
     geminiKey: option(WEB_AI, 'forkWebAiGeminiKey', 'options.geminiApiKey'),
@@ -38,6 +39,8 @@ const ForkWebAiSettings: React.FC = () => {
         setWebAiConfig(patch);
         setWebAiState(previous => ({ ...previous, ...patch }));
     };
+
+    if (isDesktopApp()) return null;
 
     return (
         <Group def={WEB_AI}>

@@ -258,6 +258,10 @@ declare global {
     canGoPrevious: boolean;
     canGoNext: boolean;
     isPlaying: boolean;
+    title?: string | null;
+    artist?: string | null;
+    loopMode?: 'off' | 'all' | 'one';
+    canCycleLoop?: boolean;
   }
 
   type ElectronTaskbarControlAction = 'previous' | 'play-pause' | 'next';
@@ -435,6 +439,10 @@ declare global {
     lastCheckedAt: number | null;
     lastSeenVersion: string | null;
     updateSeen: boolean;
+    /** Where the found version came from: GitHub, or a public proxy when GitHub could not be read. */
+    checkedVia?: 'github' | 'mirror' | null;
+    /** The last request to GitHub for this update (the check, or the download) failed. */
+    githubFailed?: boolean;
     downloadProgress?: {
       percent: number;
       transferred?: number;
@@ -506,12 +514,27 @@ declare global {
     | StageNavidromeLyricSource
     | StageQrcLyricSource;
 
+  interface StageLyricsClock {
+    positionMs: number;
+    paused: boolean;
+    sampledAtMs: number;
+  }
+
   interface StageLyricsSession {
     title?: string;
     artist?: string;
     album?: string;
-    lyricSource: StageLyricSource;
+    lyricSource?: StageLyricSource;
+    durationMs?: number;
+    coverUrl?: string;
+    clock?: StageLyricsClock;
     updatedAt: number;
+  }
+
+  interface StageLyricsClockUpdate {
+    sessionUpdatedAt: number;
+    clock: StageLyricsClock;
+    durationMs?: number;
   }
 
   interface StageMediaSession {
@@ -964,6 +987,10 @@ declare global {
       restartNeteaseApi: (reason?: 'needed') => Promise<ElectronNeteaseApiStatus>;
       onNeteaseApiStatusChanged: (callback: (status: ElectronNeteaseApiStatus) => void) => () => void;
       getKugouApiStatus: () => Promise<ElectronKugouApiStatus>;
+      fnmusicRequest: (
+        operation: 'login' | 'logout' | 'request' | 'stream' | 'coverUrl' | 'getStatus',
+        params?: import('./services/onlineMusic/fnmusic/fnmusicTransport').FnMusicBridgeParams,
+      ) => Promise<import('./services/onlineMusic/fnmusic/fnmusicTransport').FnMusicBridgeResult>;
       qishuiRequest: (
         operation: import('./services/onlineMusic/qishui/qishuiTransport').QishuiOperation,
         params?: import('./services/onlineMusic/qishui/qishuiTransport').QishuiParams,
@@ -976,6 +1003,10 @@ declare global {
         operation: import('./services/onlineMusic/ytm/ytmTransport').YtmOperation,
         params?: import('./services/onlineMusic/ytm/ytmTransport').YtmParams,
       ) => Promise<import('./services/onlineMusic/ytm/ytmTransport').YtmBridgeResult>;
+      appleMusicRequest: (
+        operation: import('./services/onlineMusic/appleMusic/appleMusicTransport').AppleMusicOperation,
+        params?: import('./services/onlineMusic/appleMusic/appleMusicTransport').AppleMusicParams,
+      ) => Promise<import('./services/onlineMusic/appleMusic/appleMusicTransport').AppleMusicBridgeResult>;
       spotifyRequest: (
         operation: import('./services/onlineMusic/spotify/spotifyTransport').SpotifyOperation,
         params?: import('./services/onlineMusic/spotify/spotifyTransport').SpotifyParams,
@@ -994,6 +1025,8 @@ declare global {
       quitApp: () => Promise<boolean>;
       isWindowMaximized: () => Promise<boolean>;
       isWindowFullscreen: () => Promise<boolean>;
+      hasNativeTrafficLights: () => Promise<boolean>;
+      setTrafficLightsVisible: (visible: boolean) => Promise<boolean>;
       onWindowFullscreenChanged: (callback: (fullscreen: boolean) => void) => () => void;
       getWindowTransparentMode: () => Promise<boolean>;
       setWindowTransparentMode: (
@@ -1009,9 +1042,11 @@ declare global {
         callback: (payload: { requestId: string }) => void,
       ) => () => void;
       setNativeTheme: (themeSource: 'system' | 'light' | 'dark') => Promise<void>;
+      /** Whether a key-capture field in this window is recording: Windows' window menu (Alt+Space) is refused meanwhile. */
+      setKeyCaptureActive?: (active: boolean) => void;
       getMainWindowClickThroughEnabled: () => Promise<boolean>;
       setMainWindowClickThroughEnabled: (enabled: boolean) => Promise<boolean>;
-      setMainWindowClickThroughUnlockHover: (active: boolean) => Promise<boolean>;
+      setMainWindowClickThroughUnlockHover: (active: boolean, viewportWidth?: number, coordinates?: { screenX: number; clientX: number }, side?: 'left' | 'right') => Promise<boolean>;
       getMainWindowAlwaysOnTop: () => Promise<boolean>;
       setMainWindowAlwaysOnTop: (enabled: boolean) => Promise<boolean>;
       onMainWindowClickThroughChanged: (callback: (state: ElectronMainWindowClickThroughState) => void) => () => void;
@@ -1083,6 +1118,7 @@ declare global {
       completeStagePlayerSearchRequest: (result: StagePlayerSearchResult) => Promise<boolean>;
       onStageSessionUpdated: (callback: (status: StageStatus) => void) => () => void;
       onStageSessionCleared: (callback: (status: StageStatus) => void) => () => void;
+      onStageLyricsClockUpdated?: (callback: (update: StageLyricsClockUpdate) => void) => () => void;
       onStageExternalPlayRequest: (callback: (request: StageExternalPlayRequest) => void) => () => void;
       onStagePlayerControlRequest: (callback: (request: StagePlayerControlRequest) => void) => () => void;
       onStagePlayerQueueRequest: (callback: (request: StagePlayerQueueRequest) => void) => () => void;

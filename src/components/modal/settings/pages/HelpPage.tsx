@@ -11,6 +11,7 @@ import { Button, CopyButton, CopyValue, Group, Keys, Row, Value, type SettingsGr
 import { openOutsideLink } from '../../../../utils/system/outsideLink';
 import { FORK_SOURCE_URL, FORK_SOURCE_LABEL } from '../../../../utils/forkSource';
 import { FoundUpdateRow } from './FoundUpdateRow';
+import { ChinaDrivesRow } from './ChinaDrivesRow';
 import { iconLabel } from './iconLabel';
 
 // src/components/modal/settings/pages/HelpPage.tsx
@@ -164,6 +165,7 @@ const HelpPage: React.FC<HelpPageProps> = ({ onOpenReleaseNotes, onOpenAiHelp, o
                     <Row sub notice={t(BUILD_KIND === 'unofficial' ? 'options.unofficialBuildNotice' : 'options.selfHostedBuildNotice')} />
                 )}
                 <FoundUpdateRow sub />
+                <ChinaDrivesRow sub quiet />
                 <Row
                     label={(
                         // The settings window counts the clicks and shows the cat at the seventh.
