@@ -32,8 +32,8 @@ export async function readEffectiveExportTheme(): Promise<DualTheme | null> {
 // params (PlayerCap nxpcPlayer/nxpcBasis/nxpcSticky). Bakes a theme only for the 'static' OBS theme
 // mode, the current light/dark preference, the transparent-background toggle, the theme-mode marker,
 // and — on the fork's keyless relay under Dynamic·AI — the user's own AI key (cfg carries only the
-// theme sides, so daylight/transparent/obsTheme/ai*/extra ride as separate params, keeping cfg the
-// terminal URL segment). The transparent param mirrors the toggle 1:1 — on → transparent=1, off →
+// theme sides, so daylight/transparent/obsTheme/ai*/extra ride as separate query params, while cfg
+// goes in the URL fragment). The transparent param mirrors the toggle 1:1 — on → transparent=1, off →
 // transparent=0 (background shown); the overlay reads an absent param the same as transparent=0, so
 // the default matches the toggle 100%.
 export async function buildCurrentObsUrl(obsSource: string, host = '', extra?: Record<string, string>): Promise<string> {
@@ -52,15 +52,16 @@ export async function buildCurrentObsUrl(obsSource: string, host = '', extra?: R
   const config = { theme, ...buildVisualSettingsConfig() };
   const mergedExtra: Record<string, string> = {};
   // The mode marker is authoritative: the overlay resolves its theme from this, not from whether cfg
-  // happens to carry one. It rides ahead of cfg, so the mode of a link already pasted into OBS stays
-  // readable at a glance. Editing it in place only demotes a static link to a dynamic one — the
-  // reverse needs a fresh copy, since the overlay cannot invent a theme a dynamic link never carried.
+  // happens to carry one. It rides in the query string ahead of the cfg fragment, so the mode of a
+  // link already pasted into OBS stays readable at a glance. Editing it in place only demotes a static
+  // link to a dynamic one — the reverse needs a fresh copy, since the overlay cannot invent a theme a
+  // dynamic link never carried.
   mergedExtra.obsTheme = webObsThemeMode;
   // Dynamic·AI (fork keyless relay): the overlay is a separate browser context that can't read
   // webAiConfig, so carry the user's own key in the URL. The provider always rides along (even on a
   // server-key deploy that omits the key) or an openai deploy would be hit at the gemini endpoint and
-  // fail silently; the key rides only when set. All sit in extra, ahead of cfg — the leading part
-  // OBS's URL field scrolls out of view.
+  // fail silently; the key rides only when set. All sit in extra, in the query string ahead of the cfg
+  // fragment — the leading part OBS's URL field scrolls out of view.
   if (webObsThemeMode === 'ai') {
     const ai = getWebAiConfig();
     mergedExtra.aiProvider = ai.provider;
