@@ -47,13 +47,15 @@ export const navigationCommands: CommandPaletteCommand[] = [
         // Hidden in settings, there is no Folia tab to open.
         isAvailable: () => useHomeLayoutSettingsStore.getState().showHomeTabFolia,
     },
-    createHomeTabCommand('playlist', 'Open playlists', 'Open playlist home tab', ['playlist', 'playlists', '歌单']),
+    // The public web build hides the four online pages (useLibraryHomeSources), so it offers no command to open them.
+    { ...createHomeTabCommand('playlist', 'Open playlists', 'Open playlist home tab', ['playlist', 'playlists', '歌单']), platform: ['electron'] },
     createHomeTabCommand('local', 'Open local music', 'Open local music tab', ['local music', 'local', '本地', '本地音乐']),
-    createHomeTabCommand('albums', 'Open albums', 'Open albums tab', ['albums', 'album', '专辑']),
+    { ...createHomeTabCommand('albums', 'Open albums', 'Open albums tab', ['albums', 'album', '专辑']), platform: ['electron'] },
     createHomeTabCommand('navidrome', 'Open Navidrome', 'Open Navidrome tab', ['navidrome', 'navi', '服务器']),
-    createHomeTabCommand('radio', 'Open radio', 'Open radio tab', ['radio', 'fm', 'recommended', '电台', '推荐']),
+    { ...createHomeTabCommand('radio', 'Open radio', 'Open radio tab', ['radio', 'fm', 'recommended', '电台', '推荐']), platform: ['electron'] },
     {
         ...createHomeTabCommand('explore', 'Open explore', 'Open explore tab', ['explore', 'discover', 'recommendations', '探索', '推荐']),
+        platform: ['electron'],
         // Only a provider with a recommendation page of its own has the tab.
         isAvailable: () => omni.getActiveCapabilities().explore === true,
     },

@@ -801,6 +801,22 @@ describe('command palette registry', () => {
         }
     });
 
+    // 本 fork：web 版隐藏歌单、专辑、电台、探索四个在线首页页签，也不提供打开它们的命令；本地页照常。
+    it.each([['playlists', 'home-playlist'], ['albums', 'home-albums'], ['radio', 'home-radio']] as const)(
+        'offers the %s home tab command only in the desktop app',
+        (query, id) => {
+            try {
+                vi.stubGlobal('window', {});
+                expect(getCommandPaletteMatches(query).map(m => m.command.id)).not.toContain(id);
+                expect(getCommandPaletteMatches('local music').map(m => m.command.id)).toContain('home-local');
+                vi.stubGlobal('window', { electron: {} });
+                expect(getCommandPaletteMatches(query).map(m => m.command.id)).toContain(id);
+            } finally {
+                vi.unstubAllGlobals();
+            }
+        },
+    );
+
     it('limits suggestions to ten commands', () => {
         expect(getCommandPaletteMatches('')).toHaveLength(10);
     });
