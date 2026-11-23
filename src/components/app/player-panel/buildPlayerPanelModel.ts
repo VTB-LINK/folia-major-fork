@@ -97,7 +97,7 @@ export type PlayerPanelDeps = {
     removeQueueSong: UnifiedPanelProps['queue']['onRemoveSong'];
     moveQueueSongToEnd: UnifiedPanelProps['queue']['onMoveSongToEnd'];
     moveQueueSongToNext: UnifiedPanelProps['queue']['onMoveSongToNext'];
-    saveCurrentQueueAsLocalPlaylist: UnifiedPanelProps['library']['onSaveCurrentQueueAsPlaylist'];
+    saveCurrentQueueAsPlaylist: UnifiedPanelProps['library']['onSaveCurrentQueueAsPlaylist'];
     accountController: UnifiedPanelProps['account']['accountController'];
     handleSyncData: UnifiedPanelProps['account']['onSyncData'];
     isSyncing: UnifiedPanelProps['account']['isSyncing'];
@@ -172,7 +172,7 @@ export const buildPlayerPanelModel = ({
     removeQueueSong,
     moveQueueSongToEnd,
     moveQueueSongToNext,
-    saveCurrentQueueAsLocalPlaylist,
+    saveCurrentQueueAsPlaylist,
     openCurrentLocalAlbum,
     openCurrentLocalArtist,
     openCurrentNavidromeAlbum,
@@ -264,7 +264,7 @@ export const buildPlayerPanelModel = ({
             onOpenLattice: LATTICE_ENABLED ? navigateToLattice : undefined,
         },
         library: {
-            onSaveCurrentQueueAsPlaylist: saveCurrentQueueAsLocalPlaylist,
+            onSaveCurrentQueueAsPlaylist: saveCurrentQueueAsPlaylist,
             onOpenCurrentLocalAlbum: openCurrentLocalAlbum,
             onOpenCurrentLocalArtist: openCurrentLocalArtist,
             onOpenCurrentNavidromeAlbum: openCurrentNavidromeAlbum,

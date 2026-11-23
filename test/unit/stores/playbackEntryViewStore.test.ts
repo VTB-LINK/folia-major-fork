@@ -82,6 +82,19 @@ describe('playback entry view store', () => {
         expect((await loadStore()).getState().requestPlaybackEntryViewPrompt()).toBe(LATTICE_ENABLED);
     });
 
+    // Folium 2.0 S8：全新安装欠的音源那一页排在最前；答过与否记在主进程，这里只按调用方说的加不加。
+    it('puts the sources page first when the caller says it is owed', async () => {
+        const fresh = await loadStore();
+        expect(fresh.getState().requestPlaybackEntryViewPrompt({ withSources: true, withLibrarySuite: true })).toBe(true);
+        // 本 fork 关闭 Lattice：首启不问播放视图那一页。
+        expect(fresh.getState().promptPages).toEqual(LATTICE_ENABLED ? ['sources', 'library-suite', 'playback-entry-view'] : ['sources', 'library-suite']);
+
+        const answeredBoth = await loadStore({ playback_entry_view_chosen: 'true', library_suite_prompt_seen: 'true' });
+        expect(answeredBoth.getState().requestPlaybackEntryViewPrompt({ withSources: false, withLibrarySuite: true })).toBe(false);
+        expect(answeredBoth.getState().requestPlaybackEntryViewPrompt({ withSources: true, withLibrarySuite: true })).toBe(true);
+        expect(answeredBoth.getState().promptPages).toEqual(['sources']);
+    });
+
     it('recognises exactly the three values', () => {
         for (const value of ['player', 'lattice', 'stay']) expect(isPlaybackEntryView(value)).toBe(true);
         for (const value of ['home', '', null, undefined, 1]) expect(isPlaybackEntryView(value)).toBe(false);

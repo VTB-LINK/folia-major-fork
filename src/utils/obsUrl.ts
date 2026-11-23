@@ -1,6 +1,6 @@
 // src/utils/obsUrl.ts
-// Small helpers to build/parse OBS URLs: pure string work with no external deps, so both the app's
-// URL builder and the OBS overlay's parser can use them.
+// Small helpers to build/parse OBS URLs (pure strings, no external deps - avoids a
+// cycle with the appearance codec / settings component).
 
 // Read cfg from a URL's fragment and query string. buildObsSourceUrl writes it into the fragment
 // (#cfg=...); links copied before that carry it in the query string, so the query is the fallback.
