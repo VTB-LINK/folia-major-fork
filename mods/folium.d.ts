@@ -16,7 +16,7 @@
 // 里面的每个文件都算模组的内容），路径改成拷过去的位置。这个文件只给编辑器看，宿主不读它。
 
 /** The Folium version this host implements; mods read it at runtime as `folium.host.folium`. */
-export declare const FOLIUM_VERSION: { readonly major: 2; readonly minor: 0 };
+export declare const FOLIUM_VERSION: { readonly major: 2; readonly minor: 1 };
 
 /** `modid:name`, like a Forge ResourceLocation. The mod id part is added by the host. */
 export type FoliumId = string;
@@ -3543,6 +3543,11 @@ export interface FoliumSourceAudioPlayback {
     getAudioSource(song: FoliumSourceSong, quality: FoliumSourceAudioQuality): Promise<FoliumSourceAudio | null>;
     /** The levels the source tells apart, lowest first; all but `ultra` when left out. May be a getter. */
     readonly audioQualityLevels?: readonly FoliumSourceAudioQuality[];
+    /**
+     * Shown in place of the quality pick list while set: the host's level does not choose this source's sound now
+     * (it plays through a player of its own, which has its own setting). Say where the quality is set. May be a getter.
+     */
+    readonly audioQualityNotice?: FoliumText;
     /** What the notice says while a clip of this source plays; the host's own words when left out. */
     readonly previewNotice?: FoliumText;
     /** For a source that keeps audio in a cache of its own: keep the file `url` plays; resolves to whether it is kept. */
@@ -4278,6 +4283,10 @@ export interface FoliumManifest {
     readonly contexts?: readonly string[] | null;
     /** Folium 2: native files of the app a built-in source uses, or null. */
     readonly native?: readonly string[] | null;
+    /** Folium 2.1: the https link of the mod's source repository, or null. */
+    readonly repository?: string | null;
+    /** Folium 2.1: the https link where users report the mod's problems, or null. */
+    readonly bugs?: string | null;
 }
 
 /**

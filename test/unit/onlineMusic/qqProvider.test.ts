@@ -1451,8 +1451,20 @@ describe('qqProvider', () => {
             requestMock.mockResolvedValue(EMPTY_PLAY_LINK);
 
             expect((await caseOf(qqProvider.playback!.getAudioSource(SONG, 'hires')))?.case).toBe('no-audio');
-            // QQ 不声明歌曲级的静态可用性，运行时失败也不会回写到那里。
-            expect(qqProvider.playback?.getAvailability).toBeUndefined();
+            // 歌曲级的静态可用性只看条目自带的下架位，运行时失败不会回写到那里。
+            expect(qqProvider.playback!.getAvailability!(SONG)).toEqual({ state: 'unknown' });
+        });
+
+        // 后端 3.3.7 起一定给请求的那首（拿不到时是空链接）；回包里别的条目是别首歌，不拿来顶替。
+        it('never plays the link of another song in the answer', async () => {
+            const OTHER_SONG_ONLY = { data: { playUrl: { '000OtherSongMid': { url: 'https://audio.example.test/other.mp3' } } } };
+            requestMock.mockResolvedValue(OTHER_SONG_ONLY);
+
+            expect(await caseOf(qqProvider.playback!.getAudioSource(SONG, 'high'))).toEqual({ case: 'no-audio' });
+            for (const [operation, params] of requestMock.mock.calls) {
+                expect(operation).toBe('music_play');
+                expect(params).toMatchObject({ songmid: '003rJSwm3TechU' });
+            }
         });
     });
 
@@ -1523,13 +1535,52 @@ describe('qqProvider', () => {
         });
     });
 
+    it('reads a public playlist page from musicu when the legacy detail returns subcode 4000', async () => {
+        const id = 8322594955;
+        requestMock.mockResolvedValue({ response: { code: 0, subcode: 4000 } });
+        const data = { code: 0, subcode: 0, dirinfo: { id }, total_song_num: 609, songlist: [SEARCH_ITEM] };
+        musicuMock
+            .mockResolvedValueOnce({ playlist: { code: 0, data: { ...data, hasmore: 1 } } })
+            .mockResolvedValueOnce({ playlist: { code: 0, data: { ...data, hasmore: 0 } } });
+
+        await expect(qqProvider.catalog!.getPlaylistTracks!(id, 1, 3)).resolves.toMatchObject({
+            items: [expect.objectContaining({ qqMid: '003rJSwm3TechU' })], nextOffset: 4, hasMore: true, total: 609,
+        });
+        expect(musicuMock).toHaveBeenCalledWith({ playlist: {
+            module: 'music.srfDissInfo.aiDissInfo', method: 'uniform_get_Dissinfo',
+            param: expect.objectContaining({ disstid: id, song_begin: 3, song_num: 1 }),
+        } });
+        await expect(qqProvider.catalog!.getPlaylistTracks!(id, 1, 608)).resolves.toMatchObject({
+            nextOffset: 609, hasMore: false, total: 609,
+        });
+    });
+
+    it('keeps an unreadable musicu playlist page distinct from an empty page', async () => {
+        requestMock.mockResolvedValue({ response: { code: 0, subcode: 4000 } });
+        for (const playlist of [
+            { code: 10006 },
+            { code: 0, data: { code: 0, subcode: 4000, dirinfo: { id: 7 }, songlist: [] } },
+            { code: 0, data: { code: 0, subcode: 0, dirinfo: { id: 8 }, songlist: [] } },
+            { code: 0, data: { code: 0, subcode: 0, dirinfo: { id: 7 } } },
+        ]) {
+            musicuMock.mockResolvedValueOnce({ playlist });
+            await expect(qqProvider.catalog!.getPlaylistTracks!(7, 50, 0)).rejects.toMatchObject({ code: 'invalid-response' });
+        }
+        musicuMock.mockResolvedValueOnce({ playlist: {
+            code: 0, data: { code: 0, subcode: 0, dirinfo: { id: 7 }, songlist: [], total_song_num: 9, hasmore: 1 },
+        } });
+        await expect(qqProvider.catalog!.getPlaylistTracks!(7, 50, 9)).resolves.toMatchObject({
+            items: [], nextOffset: 9, hasMore: false,
+        });
+    });
+
     // 🔴 旧后端 + 不公开的自建歌单，也就是这个 bug 被报上来时的处境：没有带凭据的路由可用，
     // 匿名 CGI 回 `code: 0` 加一个空壳，按长度判断完全看不出问题。空壳是 2026-09-11 用真实账号抓的：
     // `disstid` 照样回声，缺的是 `dissname`。
-    it('fails loudly on the stub a non-public playlist answers with', async () => {
+    it.each([undefined, 4000])('keeps a non-public playlist private on a stub with subcode %s', async subcode => {
         requestMock
             .mockRejectedValueOnce(new OnlineProviderError('unsupported', 'QQMusicApi has no route', 'qq'))
-            .mockResolvedValue({ response: { code: 0, cdlist: [{ disstid: '9777066643', songlist: [] }] } });
+            .mockResolvedValue({ response: { code: 0, subcode, cdlist: [{ disstid: '9777066643', songlist: [] }] } });
         const collection = normalizeQqCollection({ tid: 9777066643, dirId: 1, dirName: '新建歌单1', songNum: 3, dirShow: 2 });
 
         // `not-public` 而不是 `invalid-response`：协议没坏，是这条路由没资格读它。
@@ -1537,6 +1588,7 @@ describe('qqProvider', () => {
             code: 'not-public',
             message: expect.stringContaining('not a public playlist'),
         });
+        expect(musicuMock).not.toHaveBeenCalled();
     });
 
     it('still reports a genuinely empty playlist as an empty page', async () => {
@@ -2193,5 +2245,76 @@ describe('qqProvider (3.3.3 library)', () => {
             await expect(qqProvider.catalog!.getPlaylistDetail!(ownPlaylist.id, ownPlaylist)).resolves.toMatchObject({ playCount: 42 });
             expect(requestMock).toHaveBeenLastCalledWith('user_playlist_detail', expect.objectContaining({ tid: '70001', dirid: 5 }));
         });
+    });
+});
+
+describe('taken-down QQ songs', () => {
+    // 歌曲条目 action.switch 的 bit 27（0x8000000）：官方各端都放不了（下架，多数只剩 MV）。
+    const TAKEN_DOWN_ITEM = { ...SEARCH_ITEM, action: { switch: 141671807, msgid: 0, alert: 0 } };
+    const PLAYABLE_ITEM = { ...SEARCH_ITEM, action: { switch: 7421823, msgid: 0, alert: 16 } };
+    const VERSION_ITEM = {
+        id: 439482,
+        mid: '003oOVln0os6Jo',
+        title: '海阔天空',
+        singer: [{ id: 4558, mid: '0025NhlN2yWrP4', name: 'Beyond' }],
+        album: { id: 9001, mid: '000FixtureAlbum', name: '另一张专辑' },
+        action: { switch: 7421823, msgid: 0, alert: 16 },
+    };
+
+    beforeEach(() => {
+        requestMock.mockReset();
+        transportState.hasSession = true;
+        vi.spyOn(console, 'info').mockImplementation(() => { });
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('marks a song carrying the taken-down bit, and only that one', () => {
+        expect(qqProvider.playback!.getAvailability!(normalizeQqSong(TAKEN_DOWN_ITEM))).toEqual({ state: 'unavailable', reason: 'taken-down' });
+        expect(qqProvider.playback!.getAvailability!(normalizeQqSong(PLAYABLE_ITEM))).toEqual({ state: 'unknown' });
+        expect(qqProvider.playback!.getAvailability!(normalizeQqSong(SEARCH_ITEM))).toEqual({ state: 'unknown' });
+        for (const value of [0x10001, '134283265x', -1, 1.5, null]) {
+            const song = normalizeQqSong({ ...SEARCH_ITEM, action: { switch: value } });
+            expect(qqProvider.playback!.getAvailability!(song)).toEqual({ state: 'unknown' });
+        }
+    });
+
+    it('keeps the mark through a round trip of the song it made', () => {
+        const made = normalizeQqSongDto(TAKEN_DOWN_ITEM);
+        expect(made.data).toMatchObject({ takenDown: true });
+        expect(normalizeQqSongDto(made).data).toMatchObject({ takenDown: true });
+        expect(normalizeQqSongDto(PLAYABLE_ITEM).data).not.toHaveProperty('takenDown');
+    });
+
+    it('asks the backend for a playable version and hands it over with its label', async () => {
+        requestMock.mockResolvedValueOnce({ code: 200, original: { mid: '003rJSwm3TechU', playable: false }, song: VERSION_ITEM, label: '现场版' });
+
+        const found = await qqProvider.playback!.getReplacement!(normalizeQqSong(TAKEN_DOWN_ITEM));
+
+        expect(requestMock).toHaveBeenCalledWith('song_replacement', { mid: '003rJSwm3TechU' });
+        expect(found?.label).toBe('现场版');
+        expect(found?.song).toMatchObject({ name: '海阔天空' });
+        expect((found?.song as UnifiedSong).sourceRef).toMatchObject({ providerData: { songMid: '003oOVln0os6Jo' } });
+    });
+
+    it.each([
+        ['no playable version', () => requestMock.mockResolvedValueOnce({ code: 200, song: null, reason: 'no-playable-version' })],
+        ['the same song back', () => requestMock.mockResolvedValueOnce({ code: 200, song: { ...VERSION_ITEM, mid: '003rJSwm3TechU' } })],
+        ['an older backend without the route', () => requestMock.mockRejectedValueOnce(new OnlineProviderError('unsupported', 'QQMusicApi song_replacement 404', 'qq', undefined, 404))],
+    ])('has no replacement where the backend gives %s', async (_label, answer) => {
+        answer();
+        await expect(qqProvider.playback!.getReplacement!(normalizeQqSong(TAKEN_DOWN_ITEM))).resolves.toBeNull();
+    });
+
+    it('does not ask without a session, and lets other failures through', async () => {
+        transportState.hasSession = false;
+        await expect(qqProvider.playback!.getReplacement!(normalizeQqSong(TAKEN_DOWN_ITEM))).resolves.toBeNull();
+        expect(requestMock).not.toHaveBeenCalled();
+
+        transportState.hasSession = true;
+        requestMock.mockRejectedValueOnce(new OnlineProviderError('network', 'QQMusicApi request failed: 503', 'qq'));
+        await expect(qqProvider.playback!.getReplacement!(normalizeQqSong(TAKEN_DOWN_ITEM))).rejects.toThrow();
     });
 });

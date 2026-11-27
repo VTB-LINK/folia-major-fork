@@ -7,6 +7,7 @@ import SceneHost from './components/scenes/engine/SceneHost';
 import CommandPalette from './components/command-palette/CommandPalette';
 import AddToPlaylistHost from './components/app/AddToPlaylistHost';
 import ScratchpadHost from './components/app/scratchpad/ScratchpadHost';
+import { SongNotePinHost } from './components/song-notes/SongNoteProgress';
 import { useScratchpadPlayback, useScratchpadQueuePort } from './components/app/scratchpad/useScratchpadPlayback';
 import { useCommandPalette } from './components/command-palette/useCommandPalette';
 import { useCommandPaletteContext } from './hooks/useCommandPaletteContext';
@@ -33,6 +34,7 @@ import { UserGuideModal } from './components/modal/UserGuideModal';
 import ReleaseNotesDialog from './components/modal/ReleaseNotesDialog';
 import LegacyModelsPrompt from './components/modal/LegacyModelsPrompt';
 import { PlaybackEntryViewPrompt } from './components/modal/playback-entry-view/PlaybackEntryViewPrompt';
+import { LocalFolderAccessPrompt } from './components/local-folder-access/LocalFolderAccessPrompt';
 import { useStartupExperienceGate } from './hooks/useStartupExperienceGate';
 import { useAppDialogsModel } from './components/app/dialogs/useAppDialogsModel';
 import { useHomeModel } from './components/app/home/useHomeModel';
@@ -1425,7 +1427,7 @@ export default function App() {
         cachedCoverUrl: displayCoverUrl ?? cachedCoverUrl,
         playerState: displayPlayerState,
         isNowPlayingStageActive,
-        unknownArtistLabel: t('ui.unknownArtist'),
+        unknownArtistLabel: t('player.unknownArtist'),
         mediaSessionPlayRef,
         mediaSessionPauseRef,
         mediaSessionPrevRef,
@@ -2223,7 +2225,7 @@ export default function App() {
         onPopCollectionTo: popCollectionTo,
         onBackCollection: backCollection,
     });
-    const scratchpadPlayback = useScratchpadPlayback(homeModel.surfaceProps, handleQueueAddAndPlay);
+    const scratchpadPlayback = useScratchpadPlayback(homeModel.surfaceProps, handleQueueAddAndPlay, seekMainAudio);
     const scratchpadQueue = useScratchpadQueuePort(playSong, setQueueOrder, shuffleQueue);
     const playerDisplayCatalogIndex = useMemo(() => buildLocalLibraryIndex(
         localLibraryCatalog.entities,
@@ -2940,6 +2942,9 @@ export default function App() {
                 isHandleHidden={currentView === 'player' && isPlayerChromeHidden}
             />
 
+            {/* 胶囊槽位「记下这个时刻」弹出的小框：全局一份，钉在点下的那个按钮上方。 */}
+            <SongNotePinHost />
+
             <CommandPalette
                 activeIndex={commandPalette.activeIndex}
                 activePreview={commandPalette.activePreview}
@@ -2980,6 +2985,7 @@ export default function App() {
             />
             <UserGuideModal theme={theme} />
             <PlaybackEntryViewPrompt theme={theme} />
+            <LocalFolderAccessPrompt theme={theme} />
             {/* With 自动 AI 分词 on, segments a song that has no saved split by itself (issue #960). */}
             <AutoLyricSegmentationHost visualizerMode={visualizerMode} isLyricsLoading={isLyricsLoading} save={lyricSegmentationActions.save} />
             <TrackEndCountdownHost enabled={stageTrackPillOnScreen && nextUpTrack !== null} duration={displayDuration} />

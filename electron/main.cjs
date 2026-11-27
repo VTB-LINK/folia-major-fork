@@ -81,6 +81,8 @@ const { createWindowsThumbar } = require('./windowsThumbar.cjs');
 const { createDisplaySleepBlocker } = require('./displaySleepBlocker.cjs');
 const { createVideoExportFileWriter } = require('./videoExportFileWriter.cjs');
 const { finalizeVideoExportFile } = require('./videoExportMp4.cjs');
+const { createExportFfmpegResolver } = require('./alphaExport/exportFfmpeg.cjs');
+const { registerAlphaExportIpc } = require('./alphaExport/alphaExportIpc.cjs');
 const { createLyricApi } = require('./lyricApi.cjs');
 const { createLocalCoverAssetStore, getLocalCoverAssetDirectory } = require('./localCoverAssets.cjs');
 const {
@@ -2201,6 +2203,9 @@ const mainLocale = {
     dialogCancel: '取消',
     crashTitle: 'Folia 遇到了问题',
     crashMessage: '程序发生了一次崩溃，日志已保存。把它发给开发者能帮助定位问题。',
+    crashBlockedStartMessage: '页面进程刚启动就被结束了，通常是安全软件拦下了 Folia。',
+    crashBlockedStartDetail: '卡巴斯基不认识 Folia.exe 时，会把它放进受限制的组，由「系统监控」拦下页面进程。\n\n办法：在卡巴斯基的「受信任的应用程序」里添加 Folia.exe，并勾选「不监控应用程序活动」。只把信任组改成「受信任」不管用。其他安全软件请把 Folia.exe 加进信任名单或排除项。\n\n改完后退出 Folia 再重新打开。日志已保存在下面的位置，还是不行请把它发给开发者。',
+    crashQuit: '退出 Folia',
     crashOpenFolder: '打开日志所在文件夹',
     crashClose: '关闭',
   },
@@ -2236,6 +2241,9 @@ const mainLocale = {
     dialogCancel: '取消',
     crashTitle: 'Folia 遇到了問題',
     crashMessage: '程式發生了一次崩潰，日誌已儲存。把它發給開發者能幫助定位問題。',
+    crashBlockedStartMessage: '頁面程序剛啟動就被結束了，通常是安全軟體攔下了 Folia。',
+    crashBlockedStartDetail: '卡巴斯基不認識 Folia.exe 時，會把它放進受限制的組，由「系統監控」攔下頁面程序。\n\n辦法：在卡巴斯基的「受信任的應用程式」裡新增 Folia.exe，並勾選「不監控應用程式活動」。只把信任組改成「受信任」不管用。其他安全軟體請把 Folia.exe 加進信任名單或排除項。\n\n改完後退出 Folia 再重新開啟。日誌已儲存在下面的位置，還是不行請把它發給開發者。',
+    crashQuit: '退出 Folia',
     crashOpenFolder: '開啟日誌所在資料夾',
     crashClose: '關閉',
   },
@@ -2271,6 +2279,9 @@ const mainLocale = {
     dialogCancel: 'Cancel',
     crashTitle: 'Folia ran into a problem',
     crashMessage: 'The app crashed and a log has been saved. Sending it to the developer helps track the problem down.',
+    crashBlockedStartMessage: 'The page process was ended as soon as it started. Security software is usually what blocks it.',
+    crashBlockedStartDetail: 'When Kaspersky does not recognize Folia.exe, it puts it in a restricted group and its System Watcher stops the page process.\n\nWhat helps: in Kaspersky, add Folia.exe to "Trusted applications" and tick "Do not monitor application activity". Moving it to the Trusted group alone does not help. In other security software, add Folia.exe to the trusted list or the exclusions.\n\nThen quit Folia and open it again. A log has been saved at the path below; if this keeps happening, send it to the developer.',
+    crashQuit: 'Quit Folia',
     crashOpenFolder: 'Open Log Folder',
     crashClose: 'Close',
   },
@@ -2306,6 +2317,9 @@ const mainLocale = {
     dialogCancel: 'Batal',
     crashTitle: 'Folia mengalami masalah',
     crashMessage: 'Aplikasi mengalami crash dan log telah disimpan. Mengirimkannya ke pengembang membantu menemukan masalahnya.',
+    crashBlockedStartMessage: 'Proses halaman dihentikan begitu dimulai, biasanya karena perangkat lunak keamanan memblokir Folia.',
+    crashBlockedStartDetail: 'Jika Kaspersky tidak mengenali Folia.exe, aplikasi ini dimasukkan ke grup terbatas dan System Watcher menghentikan proses halaman.\n\nSolusinya: di Kaspersky, tambahkan Folia.exe ke "Aplikasi tepercaya" dan centang "Jangan pantau aktivitas aplikasi". Hanya memindahkannya ke grup Tepercaya tidak membantu. Di perangkat lunak keamanan lain, tambahkan Folia.exe ke daftar tepercaya atau pengecualian.\n\nSetelah itu keluar dari Folia dan buka lagi. Log telah disimpan di lokasi di bawah ini; jika masih terjadi, kirimkan ke pengembang.',
+    crashQuit: 'Keluar dari Folia',
     crashOpenFolder: 'Buka Folder Log',
     crashClose: 'Tutup',
   },
@@ -2341,6 +2355,9 @@ const mainLocale = {
     dialogCancel: 'Hủy',
     crashTitle: 'Folia đã gặp sự cố',
     crashMessage: 'Ứng dụng đã gặp sự cố và tệp nhật ký đã được lưu. Gửi nhật ký cho nhà phát triển sẽ giúp giải quyết vấn đề.',
+    crashBlockedStartMessage: 'Tiến trình trang bị kết thúc ngay khi vừa khởi động, thường là do phần mềm bảo mật chặn Folia.',
+    crashBlockedStartDetail: 'Khi Kaspersky không nhận ra Folia.exe, nó xếp ứng dụng vào nhóm bị hạn chế và System Watcher chặn tiến trình trang.\n\nCách khắc phục: trong Kaspersky, thêm Folia.exe vào "Ứng dụng tin cậy" và chọn "Không giám sát hoạt động của ứng dụng". Chỉ chuyển sang nhóm Tin cậy thì không có tác dụng. Với phần mềm bảo mật khác, hãy thêm Folia.exe vào danh sách tin cậy hoặc danh sách loại trừ.\n\nSau đó thoát Folia và mở lại. Nhật ký đã được lưu ở vị trí bên dưới; nếu vẫn lỗi, hãy gửi nhật ký cho nhà phát triển.',
+    crashQuit: 'Thoát Folia',
     crashOpenFolder: 'Mở thư mục nhật ký',
     crashClose: 'Đóng',
   },
@@ -2585,6 +2602,9 @@ const backgroundThrottling = createBackgroundThrottling({
 // Chromium's fragmented MP4 leaves the movie duration at the first fragment (#549); patch it
 // from the fragment timeline once recording ends.
 const videoExportFileWriter = createVideoExportFileWriter({ finalizeFile: finalizeVideoExportFile });
+// The ffmpeg of the transparent export (the user's choice in Settings, else a checked search), shared by
+// the host's own export and the mods' api.render.exportVideo.
+const exportFfmpegResolver = createExportFfmpegResolver({ store, appGetAppPath: () => app.getAppPath() });
 let autoUpdater = null;
 // The updater's own check of GitHub is running: its failure is handled where it was started (the
 // mirrors get asked), so the updater's 'error' event leaves the state alone meanwhile.
@@ -6398,6 +6418,7 @@ app.whenReady().then(async () => {
       // api.cache.legacyDir: a built-in source's cache of before, in the media cache folder the listener chose.
       legacyCacheDir: (name) => path.join(getConfiguredCacheDirectory(), name),
       openExternal: (url) => openExternalUrl(url),
+      resolveExportFfmpeg: () => exportFfmpegResolver.resolve(),
       // api.native.path / load: the native files the app ships for a built-in source (electron/modSystem/nativeFiles.cjs).
       // A file that is not there (a development run that has not built it, a broken install) is as unavailable as one
       // the system has no build of: the source says so at once instead of starting what cannot start.
@@ -7780,7 +7801,8 @@ ipcMain.handle('remote-control-toggle', (event) => {
 });
 
 ipcMain.handle('remote-control-close', (event) => {
-  if (!isTrustedRemoteControlContents(event.sender)) {
+  // The remote window closes itself; the main window closes it from Settings → Remote Control.
+  if (!isTrustedRemoteControlContents(event.sender) && !isTrustedMainWindowContents(event.sender)) {
     throw new Error('Untrusted renderer attempted to close the remote control window.');
   }
 
@@ -8096,6 +8118,18 @@ ipcMain.handle('video-export-finish-file', (event, sessionId) => {
 ipcMain.handle('video-export-abort-file', (event, sessionId) => {
   assertTrustedVideoExportWriter(event);
   return videoExportFileWriter.abort(sessionId);
+});
+
+registerAlphaExportIpc({
+  ipcMain,
+  dialog,
+  app,
+  resolver: exportFfmpegResolver,
+  getModSystem: () => modSystem,
+  getMainWindow: () => mainWindow,
+  getSenderWindow: (event) => BrowserWindow.fromWebContents(event.sender),
+  isFirstParty: isFirstPartyWindowContents,
+  isMainWindowSender: (event) => isTrustedMainWindowContents(event.sender),
 });
 
 ipcMain.handle('debug-get-rendered-fonts', async (event, selector) => {

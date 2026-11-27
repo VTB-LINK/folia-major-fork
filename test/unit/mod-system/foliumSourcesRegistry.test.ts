@@ -94,7 +94,7 @@ describe('the Folium version, two tracks (plan §9)', () => {
         expect(typeof one.lyrics.parse).toBe('function');
         expect(typeof one.lyrics.getLines).toBe('function');
         const two = createFoliumClientApi(mod({ kind: 'standard', sources: undefined }), clientApiOptions('export'));
-        expect(two.host.folium).toEqual({ major: 2, minor: 0 });
+        expect(two.host.folium).toEqual({ major: 2, minor: 1 });
         expect(two.sources.supports('search', 1)).toBe(true);
         expect(two.sources.supports('playback.surface', 1)).toBe(true);
         expect(two.sources.supports('playback.surface', 2)).toBe(false);
@@ -200,6 +200,31 @@ describe('registering', () => {
         off();
         expect(seen).toEqual([true]);
         expect(omni.getProviderCapabilities(handle.id).externalPlayback).toBe(true);
+    });
+
+    it('reads the quality notice where the host reads it, as a key, and none when the getter answers none or throws', () => {
+        let notice: unknown;
+        const handle = register({
+            id: 'a',
+            capabilities: {
+                'playback.audio@1': {
+                    getAudioSource: async () => null,
+                    get audioQualityNotice() {
+                        if (notice === 'throw') throw new Error('broken getter');
+                        return notice as never;
+                    },
+                },
+            },
+        });
+        expect(omni.audioQualityNoticeKey(handle.id)).toBeUndefined();
+        notice = { 'zh-CN': '在别处设置', en: 'Set elsewhere' };
+        const key = omni.audioQualityNoticeKey(handle.id);
+        expect(key).toBeTruthy();
+        expect(i18n.t(key!, { lng: 'en' })).toBe('Set elsewhere');
+        notice = 'throw';
+        expect(omni.audioQualityNoticeKey(handle.id)).toBeUndefined();
+        notice = undefined;
+        expect(omni.audioQualityNoticeKey(handle.id)).toBeUndefined();
     });
 
     it('passes a notice to whoever watches the providers, with its text as a key', () => {

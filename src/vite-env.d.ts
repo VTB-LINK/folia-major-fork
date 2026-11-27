@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-pwa/client" />
 
-import type { ModClearCacheResult, ModClearSourceDataResult, ModExportProgress, ModFfmpegStatus, ModLogEntry, ModMainCallStats, ModRpcMessage, ModRuntimeInfo, ModRuntimeSnapshot, ModSecretChange, ModSourceDataResult, ModSourceState, ModSourceStatesPayload, ModSourceUsageResult, ModStorageUsageResult } from './mods/types';
+import type { ModClearCacheResult, ModClearSourceDataResult, ModExportProgress, ModFfmpegStatus, ModLogEntry, ModMainCallStats, ModMarketCatalogResult, ModMarketProgress, ModRpcMessage, ModRuntimeInfo, ModRuntimeSnapshot, ModSecretChange, ModSourceDataResult, ModSourceState, ModSourceStatesPayload, ModSourceUsageResult, ModStorageUsageResult } from './mods/types';
+import type { AlphaVideoExportProgress, AlphaVideoFormatId, AlphaVideoExportRequest, AlphaVideoExportResult, VideoExportFfmpegChooseResult, VideoExportFfmpegStatus } from './types/videoExport';
 import type { PerfCheckProcessMemory, PerfCheckSettings } from './components/perfCheck/perfCheckTypes';
 
 declare global {
@@ -194,7 +195,7 @@ declare global {
     | { type: 'cycle-player-chrome-visibility-mode' }
     | { type: 'set-player-chrome-visibility-mode'; mode: import('./types/remoteControl').PlayerChromeVisibilityMode }
     | { type: 'open-export' }
-    | { type: 'start-export'; preset: ElectronVideoExportPreset; startMode: ElectronVideoExportStartMode }
+    | { type: 'start-export'; preset: ElectronVideoExportPreset; startMode: ElectronVideoExportStartMode; alphaFormat?: AlphaVideoFormatId }
     | { type: 'stop-export' }
     | { type: 'cancel-export' }
     | { type: 'toggle-like' }
@@ -1008,6 +1009,12 @@ declare global {
       appendVideoExportChunk: (sessionId: string, data: ArrayBuffer) => Promise<number>;
       finishVideoExportFile: (sessionId: string) => Promise<{ filePath: string; bytesWritten: number; finalized: boolean }>;
       abortVideoExportFile: (sessionId: string) => Promise<boolean>;
+      getVideoExportFfmpegStatus?: (refresh?: boolean) => Promise<VideoExportFfmpegStatus>;
+      chooseVideoExportFfmpeg?: () => Promise<VideoExportFfmpegChooseResult>;
+      clearVideoExportFfmpeg?: () => Promise<VideoExportFfmpegStatus>;
+      startAlphaVideoExport?: (request: AlphaVideoExportRequest) => Promise<AlphaVideoExportResult>;
+      cancelAlphaVideoExport?: () => Promise<{ ok: boolean }>;
+      onAlphaVideoExportProgress?: (callback: (progress: AlphaVideoExportProgress) => void) => () => void;
       getStageStatus: () => Promise<StageStatus>;
       setStageEnabled: (enabled: boolean) => Promise<StageStatus>;
       regenerateStageToken: () => Promise<StageStatus>;
@@ -1060,6 +1067,14 @@ declare global {
         onSourceStatesChanged?: (callback: (payload: ModSourceStatesPayload) => void) => () => void;
         onCommunityModsChanged?: (callback: (payload: { enabled: boolean }) => void) => () => void;
         onSourcesStopping?: (callback: (payload: { sourceIds: string[] }) => void) => () => void;
+        // Folium 2.1: uninstall, loading past an expired `folia` range, the mod market.
+        uninstallMod?: (modId: string) => Promise<{ ok: boolean; error?: string; mods?: ModRuntimeInfo[] }>;
+        allowExpiredModRange?: (modIds: string[]) => Promise<{ ok: boolean; error?: string; mods?: ModRuntimeInfo[] }>;
+        revokeExpiredModRange?: (modId: string) => Promise<{ ok: boolean; error?: string; mods?: ModRuntimeInfo[] }>;
+        getMarketCatalog?: (options?: { force?: boolean }) => Promise<ModMarketCatalogResult>;
+        getMarketReadme?: (url: string) => Promise<{ ok: boolean; text?: string; error?: string }>;
+        installFromMarket?: (modId: string) => Promise<{ ok: boolean; id?: string; error?: string; mods?: ModRuntimeInfo[] }>;
+        onMarketProgress?: (callback: (progress: ModMarketProgress) => void) => () => void;
         onModsStateChanged: (callback: (mods: ModRuntimeInfo[]) => void) => () => void;
         onExportProgress: (callback: (progress: ModExportProgress) => void) => () => void;
         onModLog: (callback: (entry: ModLogEntry) => void) => () => void;

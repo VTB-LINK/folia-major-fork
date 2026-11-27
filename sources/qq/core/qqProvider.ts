@@ -26,17 +26,19 @@ import {
 import { collectQqLoginDiagnostics } from './qqLoginDiagnostics';
 import { canRunQqSelfCheck, runQqSelfCheck } from './qqSelfCheck';
 import { getQqSongDetailById, getQqSongDetails, QQ_SONG_DETAILS_PER_REQUEST, requestQqSongDetail } from './qqSongDetail';
-import { qqRecommendations } from './qqRecommendations';
+import { qqRecommendations, resetQqPersonalFmPage } from './qqRecommendations';
 import { clearQqGuessYouLikeCatalog } from './qqGuessYouLike';
 import { resetQqSearchFallbackMemory, searchQqCollections, searchQqSongs } from './qqSearch';
 import { getQqSubscriptionStatus, qqMutations } from './qqMutations';
 import { describeQqLoginFailure, qqAccountHintNote, qqCheckFailure, qqHintFailure } from './qqLoginFailure';
 import { describeQqFailure } from './qqFailure';
 import { getQqCloudCollection, getQqCloudTracks, getQqListTracks, qqListKindOf } from './qqLists';
+import { readQqMusicuPlaylistPage } from './qqMusicuPlaylist';
 import { createQqExplore } from './qqExplore';
 import { getQqListeningRankCollections, getQqListeningRankTracks } from './qqListeningRank';
 import { areQqSongsLiked, resetQqVipMemory, withQqVipType } from './qqAccount';
 import { qqPlaybackUrl, requestQqPreviewSource } from './qqPreview';
+import { getQqSongReplacement, qqSongAvailability } from './qqAvailability';
 import { noteQqBackendDeclaration, qqBackendSessionMode, resetQqBackendDeclaration } from './qqBackendDeclaration';
 import { keepQqSessionFresh, resetQqSessionRefresh, stopQqSessionRefresh } from './qqSessionRefresh';
 import { qqCovers } from './qqCovers';
@@ -46,6 +48,12 @@ import { QQ_ICON, QQ_MUSIC_ICON, WECHAT_ICON } from './qqLoginIcons';
 // QQ 音乐的音源定义（folium.sources.register 收的那份）：每个能力族一组成员，形状是公开契约的。宿主的开关由实现了
 // 哪些能力推导（适配层 parts.ts），和迁之前手写的开关表一致。歌的 id 是 songmid（没有 mid 的才是数字 songid），
 // 数字 songid、专辑 mid、媒体 mid 记在歌的 data 上（qqNormalize.ts）。
+
+/** 跟着账号的电台记忆：猜你喜欢的模式目录与封面那一批、私人 FM 的页码。换账号、登出、重新创建音源时一起丢掉。 */
+const forgetQqAccountRadio = (): void => {
+    clearQqGuessYouLikeCatalog();
+    resetQqPersonalFmPage();
+};
 
 type QqApiQuality = '128' | '320' | 'flac';
 
@@ -106,32 +114,52 @@ const dataText = (data: FoliumSourceCollection['data'], name: string): string =>
  * 所以判据是 `dissname` 在不在，而不是 `disstid`，也不是 `cdlist` 或 songlist 的长度 —— 真的空歌单
  * 会带着完整的 `dissname` 回来。两者混成同一个空结果，就是用户看到的那个没有报错的「暂无内容」。
  */
-const loadRawPlaylistTracks = async (
+const getPublicPlaylistTracks = async (
     id: string,
+    limit: number,
+    offset: number,
     collection?: FoliumSourceCollection,
-): Promise<{ tracks: unknown[]; total?: number }> => {
-    const response = await requestQq<any>('song_list_detail', { disstid: String(id) });
-    const cdlist = response?.response?.cdlist;
+): Promise<FoliumSourcePage<FoliumSourceSong>> => {
+    const answer = await requestQq<{ response?: {
+        code?: number;
+        subcode?: number;
+        cdlist?: { dissname?: string; songlist?: unknown[]; total_song_num?: number; songnum?: number }[];
+    } } | null>('song_list_detail', { disstid: id });
+    const response = answer?.response;
+    const cdlist = response?.cdlist;
     const detail = Array.isArray(cdlist) ? cdlist[0] : undefined;
-    const dissname = String(detail?.dissname ?? '').trim();
+    const dissname = typeof detail?.dissname === 'string' && detail.dissname.trim();
 
-    if (!detail || typeof detail !== 'object' || !dissname) {
+    if (!detail || !dissname) {
         // 已知不公开时报 `not-public` 而不是 `invalid-response`：这不是协议坏了，是这条匿名
         // 路由没资格读它 —— 后端补上带凭据的歌单路由之后，自建歌单就不会再走到这里。调用方据此
         // 给用户一句能看懂的解释，而不是把协议细节甩到界面上。
         const dirShow = Number(collection?.data?.dirShow);
         const notPublic = Number.isFinite(dirShow) && dirShow !== 1;
+        // 部分公开推荐歌单在旧 CGI 上只回 0/4000、没有详情；musicu 可以按页读到同一张歌单。
+        const dissId = Number(id);
+        if (!notPublic && response?.code === 0 && response.subcode === 4000
+            && Number.isSafeInteger(dissId) && dissId > 0 && String(dissId) === id) {
+            return readQqMusicuPlaylistPage(dissId, limit, offset);
+        }
         throw qqError(
             notPublic ? 'not-public' : 'invalid-response',
             `QQMusicApi song_list_detail could not read playlist ${id}`
             + `${notPublic ? ' (not a public playlist; this anonymous endpoint cannot read it)' : ''}`,
-            response?.response,
+            response,
         );
     }
 
-    const tracks = Array.isArray(detail.songlist) ? detail.songlist : [];
+    const tracks: unknown[] = Array.isArray(detail.songlist) ? detail.songlist : [];
     const total = Number(detail.total_song_num ?? detail.songnum);
-    return { tracks, ...(Number.isFinite(total) && total >= 0 ? { total } : {}) };
+    const items = tracks.slice(offset, offset + Math.max(0, limit)).map(normalizeQqSong);
+    const nextOffset = offset + items.length;
+    return {
+        items,
+        nextOffset,
+        hasMore: nextOffset < tracks.length,
+        ...(Number.isFinite(total) && total >= 0 ? { total } : {}),
+    };
 };
 
 // 后端有没有 `/user/playlist-detail` 只取决于它的版本，一个会话里不会变，所以探到一次 404
@@ -242,17 +270,7 @@ const getPlaylistTracks = async (
     }
 
     // 收藏的、分享链接进来的歌单本来就只能走匿名路由；后端太旧时也回落到这里。
-    const { tracks, total } = await loadRawPlaylistTracks(id, collection);
-    const items = tracks
-        .slice(offset, offset + Math.max(0, limit))
-        .map(normalizeQqSong);
-    const nextOffset = offset + items.length;
-    return {
-        items,
-        ...(total === undefined ? {} : { total }),
-        hasMore: nextOffset < tracks.length,
-        nextOffset,
-    };
+    return getPublicPlaylistTracks(id, limit, offset, collection);
 };
 
 const playCountOf = (value: unknown): number | undefined => {
@@ -417,10 +435,9 @@ const getAudioSource = async (song: FoliumSourceSong, quality: FoliumSourceAudio
             });
             const playUrl = response?.data?.playUrl;
             const playUrlMap = playUrl && typeof playUrl === 'object' ? playUrl : {};
-            const direct = playUrlMap[songmid];
-            const fallback = Object.values(playUrlMap)[0] as any;
-            const entry = direct ?? fallback;
-            const url = qqPlaybackUrl(playUrlOf(direct) || playUrlOf(fallback));
+            // 只认这首自己的条目：后端 3.3.7 起一定给请求的 mid（拿不到时是空链接），别的条目是别首歌。
+            const entry = playUrlMap[songmid];
+            const url = qqPlaybackUrl(playUrlOf(entry));
             if (url) return { url, quality: candidate.resolvedQuality };
             if (entry && typeof entry === 'object') {
                 sawEmptyPlayLink = true;
@@ -702,7 +719,7 @@ const checkLogin = async (key: string): Promise<FoliumSourceLoginState> => {
         return { state: 'scanned' };
     }
     if (code === 803) {
-        clearQqGuessYouLikeCatalog();
+        forgetQqAccountRadio();
         lastQqAccountId = null;
         return { state: 'confirmed' };
     }
@@ -981,7 +998,7 @@ export const resetQqProviderRuntimeCache = (): void => {
     resetQqVipMemory();
     resetQqSessionRefresh();
     resetQqSearchFallbackMemory();
-    clearQqGuessYouLikeCatalog();
+    forgetQqAccountRadio();
 };
 
 const getLoginStatus = async (): Promise<FoliumSourceUser | null> => {
@@ -1001,7 +1018,7 @@ const getLoginStatus = async (): Promise<FoliumSourceUser | null> => {
         }
         const normalized = normalizeQqUser(profile);
         const accountId = normalized.id || '';
-        if (lastQqAccountId && accountId && lastQqAccountId !== accountId) clearQqGuessYouLikeCatalog();
+        if (lastQqAccountId && accountId && lastQqAccountId !== accountId) forgetQqAccountRadio();
         lastQqAccountId = accountId || null;
         const user = await withQqVipType(normalized);
         // 登录还在：会话要在到期前续（qqSessionRefresh.ts）；续期的请求排在通道探测之后。
@@ -1028,7 +1045,7 @@ const getLoginStatus = async (): Promise<FoliumSourceUser | null> => {
 // The request takes the session as it is when it is made (`requestQq`); the session leaves the
 // page at once, before the first wait and whatever the backend answers.
 const logout = async (): Promise<void> => {
-    clearQqGuessYouLikeCatalog();
+    forgetQqAccountRadio();
     lastQqAccountId = null;
     stopQqSessionRefresh();
     const told = hasQqSession()
@@ -1079,6 +1096,8 @@ export const createQqSource = (): FoliumSourceDef => ({
             getSong: id => getQqSongDetailById(id),
             getSongs: ids => getQqSongDetails(ids),
             songsPerRequest: QQ_SONG_DETAILS_PER_REQUEST,
+            getAvailability: qqSongAvailability,
+            getReplacement: getQqSongReplacement,
             getPageUrl,
         },
         'playback.audio@1': {

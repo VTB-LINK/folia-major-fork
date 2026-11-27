@@ -328,6 +328,17 @@ contextBridge.exposeInMainWorld('electron', {
     appendVideoExportChunk: (sessionId, data) => ipcRenderer.invoke('video-export-append-chunk', sessionId, data),
     finishVideoExportFile: (sessionId) => ipcRenderer.invoke('video-export-finish-file', sessionId),
     abortVideoExportFile: (sessionId) => ipcRenderer.invoke('video-export-abort-file', sessionId),
+    // The transparent export through the user's full ffmpeg (electron/alphaExport/).
+    getVideoExportFfmpegStatus: (refresh) => ipcRenderer.invoke('video-export-ffmpeg-status', refresh === true),
+    chooseVideoExportFfmpeg: () => ipcRenderer.invoke('video-export-ffmpeg-choose'),
+    clearVideoExportFfmpeg: () => ipcRenderer.invoke('video-export-ffmpeg-clear'),
+    startAlphaVideoExport: (request) => ipcRenderer.invoke('video-export-alpha-start', request),
+    cancelAlphaVideoExport: () => ipcRenderer.invoke('video-export-alpha-cancel'),
+    onAlphaVideoExportProgress: (callback) => {
+        const listener = (_event, progress) => callback(progress);
+        ipcRenderer.on('video-export-alpha-progress', listener);
+        return () => ipcRenderer.removeListener('video-export-alpha-progress', listener);
+    },
     getStageStatus: () => ipcRenderer.invoke('stage-get-status'),
     setStageEnabled: (enabled) => ipcRenderer.invoke('stage-set-enabled', enabled),
     regenerateStageToken: () => ipcRenderer.invoke('stage-regenerate-token'),
@@ -409,6 +420,18 @@ contextBridge.exposeInMainWorld('electron', {
         confirmModOverride: (modId) => ipcRenderer.invoke('folia-mods:confirm-override', modId),
         assignSourceClaim: (shortId, modId) => ipcRenderer.invoke('folia-mods:assign-source-claim', shortId, modId),
         reportSourcesRegistered: (modId, registered, clientUrl) => ipcRenderer.invoke('folia-mods:sources-registered', modId, registered, clientUrl),
+        // Folium 2.1: uninstall (to the trash), loading mods past an expired `folia` range, and the mod market.
+        uninstallMod: (modId) => ipcRenderer.invoke('folia-mods:uninstall', modId),
+        allowExpiredModRange: (modIds) => ipcRenderer.invoke('folia-mods:allow-expired-range', modIds),
+        revokeExpiredModRange: (modId) => ipcRenderer.invoke('folia-mods:revoke-expired-range', modId),
+        getMarketCatalog: (options) => ipcRenderer.invoke('folia-mods:market-catalog', options),
+        getMarketReadme: (url) => ipcRenderer.invoke('folia-mods:market-readme', url),
+        installFromMarket: (modId) => ipcRenderer.invoke('folia-mods:market-install', modId),
+        onMarketProgress: (callback) => {
+            const listener = (_event, progress) => callback(progress);
+            ipcRenderer.on('folia-mods:market-progress', listener);
+            return () => ipcRenderer.removeListener('folia-mods:market-progress', listener);
+        },
         onModsStateChanged: (callback) => {
             const listener = (_event, mods) => callback(mods);
             ipcRenderer.on('folia-mods:state-changed', listener);

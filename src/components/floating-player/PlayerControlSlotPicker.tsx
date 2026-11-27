@@ -5,6 +5,7 @@ import { Settings2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { capsuleGlassClass, capsuleGlassStyle } from './capsuleGlass';
 import { PLAYER_CONTROL_SLOT_OPTIONS, type PlayerControlSlotActionId } from './playerControlSlotActions';
+import { LATTICE_ENABLED } from '../../utils/foliaFork';
 
 // src/components/floating-player/PlayerControlSlotPicker.tsx
 // 在槽位正上方原地换按钮的小浮层：右键（触屏长按）槽位打开，选一个就换上，底部一行通往设置页。
@@ -12,8 +13,13 @@ import { PLAYER_CONTROL_SLOT_OPTIONS, type PlayerControlSlotActionId } from './p
 const PICKER_WIDTH_PX = 296;
 const VIEWPORT_MARGIN_PX = 8;
 const ANCHOR_GAP_PX = 12;
+// FORK-ONLY: Lattice 关闭时隐藏「播放队列（海报）」候选，与设置页布局编辑器保持一致。
+const AVAILABLE_OPTIONS = LATTICE_ENABLED
+    ? PLAYER_CONTROL_SLOT_OPTIONS
+    : PLAYER_CONTROL_SLOT_OPTIONS.filter(option => option.id !== 'song-wall');
 
-export type PlayerControlSlotSide = 'primary' | 'secondary';
+export type { PlayerControlSlotSide } from '../../types/playerControlSlots';
+import type { PlayerControlSlotSide } from '../../types/playerControlSlots';
 
 interface PlayerControlSlotPickerProps {
     /** 打开那一刻量到的槽位按钮位置；胶囊在浮层打开期间保持展开，位置不会再变。 */
@@ -108,7 +114,7 @@ const PlayerControlSlotPicker: React.FC<PlayerControlSlotPickerProps> = ({
                 {t(side === 'primary' ? 'options.playerControlSlotPrimary' : 'options.playerControlSlotSecondary')}
             </div>
             <div className="grid grid-cols-4 gap-1">
-                {PLAYER_CONTROL_SLOT_OPTIONS.map(option => {
+                {AVAILABLE_OPTIONS.map(option => {
                     const Icon = option.icon;
                     const label = t(option.labelKey);
                     const isCurrent = option.id === current;
