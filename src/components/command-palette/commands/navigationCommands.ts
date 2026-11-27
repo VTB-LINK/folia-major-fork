@@ -42,12 +42,13 @@ export const navigationCommands: CommandPaletteCommand[] = [
         isAvailable: (context) => !context?.navigation.isWallpaperMode,
         execute: (_input, context) => context.navigation.toggleBrowserFullscreen(),
     },
+    // The public web build hides Folia and the four online pages (useLibraryHomeSources), so it offers no command to open them.
     {
         ...createHomeTabCommand('folia', 'Open Folia playlists', 'Open the Folia home tab', ['folia', 'folia playlists', 'scratchpad', '聚合歌单', 'Folia 歌单']),
+        platform: ['electron'],
         // Hidden in settings, there is no Folia tab to open.
         isAvailable: () => useHomeLayoutSettingsStore.getState().showHomeTabFolia,
     },
-    // The public web build hides the four online pages (useLibraryHomeSources), so it offers no command to open them.
     { ...createHomeTabCommand('playlist', 'Open playlists', 'Open playlist home tab', ['playlist', 'playlists', '歌单']), platform: ['electron'] },
     createHomeTabCommand('local', 'Open local music', 'Open local music tab', ['local music', 'local', '本地', '本地音乐']),
     { ...createHomeTabCommand('albums', 'Open albums', 'Open albums tab', ['albums', 'album', '专辑']), platform: ['electron'] },

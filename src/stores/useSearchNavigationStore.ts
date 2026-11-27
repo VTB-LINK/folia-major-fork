@@ -403,9 +403,9 @@ const getInitialHomeViewTab = (): HomeViewTab => {
     const resolved: HomeViewTab = isHomeOnlineViewTab(savedTab) || savedTab === 'local' || savedTab === 'navidrome' || savedTab === 'folia'
         ? savedTab
         : 'playlist';
-    // The public web build hides the online music-source tabs; land on local rather than an invisible tab.
+    // The public web build hides the online music-source and Folia tabs; land on local rather than an invisible tab.
     const isElectron = Boolean((window as { electron?: unknown }).electron);
-    if (!isElectron && isHomeOnlineViewTab(resolved)) {
+    if (!isElectron && (isHomeOnlineViewTab(resolved) || resolved === 'folia')) {
         return 'local';
     }
     return resolved;

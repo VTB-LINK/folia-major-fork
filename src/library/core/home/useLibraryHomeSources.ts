@@ -73,13 +73,16 @@ export const useLibraryHomeSources = ({
         rememberedOnlineTab: state.homeOnlineTab,
         setTab: state.setHomeViewTab,
     })));
-    const tab = storedTab === 'folia' && !folia ? rememberedOnlineTab : storedTab;
-    // Online music-source tabs (playlist / radio / explore / albums) need the Electron online backend, so the
-    // public web build hides them (and with them the online group); Folia and local stay. Matches the gate the
-    // legacy Grid3D applied.
+    // Online music-source tabs (playlist / radio / explore / albums) and Folia are desktop-only; the public web
+    // build hides them (and their groups), leaving only local and Navidrome when enabled.
     const isElectron = typeof window !== 'undefined' && Boolean((window as { electron?: unknown }).electron);
+    const tab: HomeViewTab = !isElectron && (storedTab === 'folia' || isOnlineHomeTab(storedTab))
+        ? 'local'
+        : storedTab === 'folia' && !folia
+            ? rememberedOnlineTab
+            : storedTab;
     const visibility = useHomeLayoutSettingsStore(useShallow(state => ({
-        folia: folia && state.showHomeTabFolia,
+        folia: isElectron && folia && state.showHomeTabFolia,
         playlist: isElectron && state.showHomeTabPlaylist,
         radio: isElectron && state.showHomeTabRadio,
         explore: isElectron && state.showHomeTabExplore,
@@ -106,12 +109,16 @@ export const useLibraryHomeSources = ({
         canListPlaylists, explore, personalFmModes, provider, providerId, recommendations, userAlbums, userLibrary,
     ]);
 
-    // The explore tab is gone after a switch to a provider without one, and a stored choice of it
-    // may be older than the switch.
+    // Normalize hidden web tabs back to local, and recover from an explore tab after switching to a provider
+    // without one.
     useEffect(() => {
+        if (!isElectron && (storedTab === 'folia' || isOnlineHomeTab(storedTab))) {
+            setTab('local');
+            return;
+        }
         // 只改存着的就是 explore 的情形：存的是 Folia、这里只是按在线组记住的页显示时不写（见 folia 参数）。
         if (storedTab === 'explore' && !online.canUseExplore) setTab('playlist');
-    }, [online.canUseExplore, setTab, storedTab]);
+    }, [isElectron, online.canUseExplore, setTab, storedTab]);
 
     const localAvailability = getLocalLibraryAvailability();
     const tabs = useMemo(() => translateHomeTabs(resolveHomeTabs({

@@ -31,8 +31,14 @@ describe('home view tab memory', () => {
         setElectron(false);
     });
 
-    // 本 fork：web 版不显示在线页，存下的在线页或未知值都落到本地页；Folia 页照旧。
-    it.each([['radio', 'local'], ['somewhere', 'local'], ['folia', 'folia']] as const)(
+    // 本 fork：web 版不显示在线页与 Folia 页，存下的在线页、Folia 页或未知值都落到本地页；本地与 Navidrome 照旧。
+    it.each([
+        ['radio', 'local'],
+        ['somewhere', 'local'],
+        ['folia', 'local'],
+        ['local', 'local'],
+        ['navidrome', 'navidrome'],
+    ] as const)(
         'on the web a stored %s opens on %s',
         async (saved, expected) => {
             setElectron(false);
@@ -40,6 +46,11 @@ describe('home view tab memory', () => {
             expect((await loadStore()).getState().homeViewTab).toBe(expected);
         },
     );
+
+    it('in the desktop app a stored folia still opens on folia', async () => {
+        localStorage.setItem('last_home_view_tab', 'folia');
+        expect((await loadStore()).getState().homeViewTab).toBe('folia');
+    });
 
     it.each(['playlist', 'radio', 'albums', 'explore', 'local', 'navidrome'] as const)(
         'a stored %s from before two-level tabs is still the page the home opens on',

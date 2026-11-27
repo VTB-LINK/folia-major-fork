@@ -803,8 +803,13 @@ describe('command palette registry', () => {
         }
     });
 
-    // 本 fork：web 版隐藏歌单、专辑、电台、探索四个在线首页页签，也不提供打开它们的命令；本地页照常。
-    it.each([['playlists', 'home-playlist'], ['albums', 'home-albums'], ['radio', 'home-radio']] as const)(
+    // 本 fork：web 版隐藏歌单、专辑、电台、探索和 Folia 首页页签，也不提供打开它们的命令；本地页照常。
+    it.each([
+        ['playlists', 'home-playlist'],
+        ['albums', 'home-albums'],
+        ['radio', 'home-radio'],
+        ['folia', 'home-folia'],
+    ] as const)(
         'offers the %s home tab command only in the desktop app',
         (query, id) => {
             try {
